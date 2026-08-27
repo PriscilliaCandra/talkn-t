@@ -1,0 +1,1 @@
+Dokumen sampel dari Talkn't AI WhatsApp Agent. File ini disajikan melalui Function Calling media tool.

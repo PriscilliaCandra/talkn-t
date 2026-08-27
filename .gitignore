@@ -1,0 +1,23 @@
+# Dependencies & Packages
+node_modules/
+client/node_modules/
+
+# Build & Bundles
+dist/
+client/dist/
+
+# Environment & Secrets
+.env
+.env.local
+
+# Session & Runtime Storage
+sessions/
+talknt_data.json
+video_outputs/
+presentations/
+media_assets/
+
+# Logs & OS Files
+*.log
+.DS_Store
+Thumbs.db
