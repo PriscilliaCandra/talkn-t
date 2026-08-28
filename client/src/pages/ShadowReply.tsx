@@ -124,7 +124,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
       await api.post('/media-assets/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      showToast(`File ${file.name} berhasil diunggah ke ./media_assets`);
+      showToast(`File ${file.name} berhasil diunggah!`);
       fetchMediaFiles();
     } catch (err: any) {
       alert(err?.response?.data?.error || 'Gagal mengunggah file media.');
@@ -467,20 +467,23 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           </form>
         </div>
 
-        {/* Media Assets Browser (1 col) */}
+        {/* Media Assets Browser (1 col) - RAPI DAN MINIMALIS */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-              <div>
-                <h3 className="text-sm md:text-base font-bold text-slate-100 flex items-center gap-2">
-                  <Folder className="w-5 h-5 text-indigo-400 shrink-0" />
-                  Daftar Media Lokal
-                </h3>
-                <p className="text-[10px] text-slate-500 font-mono mt-0.5">./media_assets</p>
+            {/* Header Rapi & Clean */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 gap-2 mb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Folder className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-100 truncate">Daftar Media Lokal</h3>
+                  <p className="text-[10px] text-slate-400 font-mono leading-none">./media_assets</p>
+                </div>
               </div>
 
-              {/* Upload Media Button */}
-              <label className="cursor-pointer px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-colors">
+              {/* Upload Media Button Single-Line Compact */}
+              <label className="cursor-pointer shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all active:scale-95">
                 {uploadingMedia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 <span>Tambah File</span>
                 <input
@@ -492,35 +495,38 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               </label>
             </div>
 
-            {/* Explanation Note Banner */}
-            <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[11px] text-indigo-300 space-y-1 mb-3">
-              <div className="flex items-center gap-1.5 font-bold">
-                <Info className="w-4 h-4 text-indigo-400 shrink-0" />
+            {/* Explanation Note Banner Rapi Tanpa Markdown Raw Syntax */}
+            <div className="p-3 bg-indigo-950/60 border border-indigo-500/20 rounded-xl text-[11px] text-slate-300 space-y-1 mb-3 shadow-inner">
+              <div className="flex items-center gap-1.5 font-bold text-indigo-400">
+                <Info className="w-4 h-4 shrink-0" />
                 <span>Fungsi AI Tool Calling Media:</span>
               </div>
-              <p className="text-slate-300 leading-normal">
-                File di folder ini digunakan oleh AI Agent (DeepSeek) untuk **dikirimkan otomatis via WhatsApp** ketika pelanggan/kontak meminta brosur, katalog, dokumen, atau gambar di chat.
+              <p className="leading-relaxed text-slate-300">
+                File di folder ini digunakan AI Agent (DeepSeek) untuk <strong className="text-slate-100 font-semibold">dikirimkan otomatis via WhatsApp</strong> ketika kontak meminta brosur, katalog, dokumen, atau gambar di chat.
               </p>
             </div>
 
+            {/* List Files Container */}
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {mediaFiles.length > 0 ? (
                 mediaFiles.map((file, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-2 hover:border-slate-700 transition-colors"
+                    className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-2 hover:border-slate-700 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <FileText className="w-5 h-5 text-brand-400 shrink-0" />
+                      <FileText className="w-4 h-4 text-brand-400 shrink-0" />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold text-slate-200 truncate">{file.fileName}</span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-xs font-semibold text-slate-200 truncate" title={file.fileName}>
+                          {file.fileName}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
                           {(file.sizeBytes / 1024).toFixed(1)} KB
                         </span>
                       </div>
                     </div>
 
-                    {/* Action Buttons: Preview & Delete */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-1 shrink-0">
                       {file.previewUrl && (
                         <a
@@ -530,7 +536,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                           className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-900 rounded-lg transition-colors"
                           title="Preview File"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
                         </a>
                       )}
                       <button
@@ -538,14 +544,18 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                         className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition-colors"
                         title="Hapus File"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                  Belum ada file di folder ./media_assets. Klik "Tambah File" di atas untuk mengunggah dokumen/brosur.
+                <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-800/80 rounded-xl bg-slate-950/40 space-y-1">
+                  <Folder className="w-8 h-8 text-slate-700 mx-auto mb-1" />
+                  <p className="font-semibold text-slate-400">Folder Media Kosong</p>
+                  <p className="text-[11px] text-slate-500">
+                    Klik "Tambah File" di atas untuk mengunggah dokumen/brosur.
+                  </p>
                 </div>
               )}
             </div>
