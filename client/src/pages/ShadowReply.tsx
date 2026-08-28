@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
-import { Bot, ToggleLeft, ToggleRight, Save, Folder, FileText, Sparkles, CheckCircle2, QrCode, MessageSquare, LogOut, Users, User, Phone, ArrowLeft } from 'lucide-react';
+import { Bot, ToggleLeft, ToggleRight, Save, Folder, FileText, Sparkles, CheckCircle2, QrCode, MessageSquare, LogOut, Users, User, Phone, ArrowLeft, Upload, Eye, Trash2, Info, Loader2 } from 'lucide-react';
 
 interface ShadowReplyProps {
   waStatus: 'disconnected' | 'connecting' | 'connected';
@@ -12,6 +12,7 @@ interface MediaFile {
   fileName: string;
   sizeBytes: number;
   updatedAt: number;
+  previewUrl?: string;
 }
 
 export interface ChatMessage {
@@ -32,6 +33,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   // Live Chat Inbox State & Mobile Responsive Navigation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -110,6 +112,40 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
     }
   };
 
+  const handleUploadMediaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingMedia(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      await api.post('/media-assets/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      showToast(`File ${file.name} berhasil diunggah ke ./media_assets`);
+      fetchMediaFiles();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Gagal mengunggah file media.');
+    } finally {
+      setUploadingMedia(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteMediaFile = async (fileName: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus file "${fileName}"?`)) return;
+
+    try {
+      await api.delete(`/media-assets/${encodeURIComponent(fileName)}`);
+      showToast(`File ${fileName} berhasil dihapus.`);
+      fetchMediaFiles();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Gagal menghapus file.');
+    }
+  };
+
   const handleDisconnectWa = async () => {
     if (!window.confirm('Apakah Anda yakin ingin memutuskan koneksi sesi WhatsApp?')) return;
     setDisconnecting(true);
@@ -125,7 +161,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
 
   const handleSelectContact = (jid: string) => {
     setSelectedJid(jid);
-    setMobileView('chat'); // Pada layar HP (<768px), otomatis pindah ke tampilan chat full screen
+    setMobileView('chat');
   };
 
   const showToast = (msg: string) => {
@@ -223,11 +259,9 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           </span>
         </div>
 
-        {/* Responsive Container: Mobile Single-View vs Tablet/Desktop Dual Column */}
         <div className="h-[460px] md:h-[500px] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-inner flex relative">
           
           {/* KOLOM 1: DAFTAR KONTAK */}
-          {/* Di Mobile (<768px): Tampil jika mobileView === 'list'. Di Tablet/Desktop (>=768px): Selalu tampil 30-35% */}
           <div
             className={`w-full md:w-[35%] xl:w-[30%] border-r border-slate-800 flex flex-col bg-slate-950/80 transition-all ${
               mobileView === 'chat' ? 'hidden md:flex' : 'flex'
@@ -250,7 +284,6 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                         : 'hover:bg-slate-900/80 text-slate-400'
                     }`}
                   >
-                    {/* Avatar */}
                     <div
                       className={`w-10 h-10 rounded-full font-bold flex items-center justify-center shrink-0 shadow-sm text-sm ${
                         c.isGroup
@@ -261,7 +294,6 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                       {c.isGroup ? <Users className="w-5 h-5" /> : c.name.charAt(0).toUpperCase()}
                     </div>
 
-                    {/* Contact Detail */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-100 truncate">{c.name}</span>
@@ -289,7 +321,6 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           </div>
 
           {/* KOLOM 2: AREA PERCAKAPAN (CHAT BUBBLES) */}
-          {/* Di Mobile (<768px): Tampil jika mobileView === 'chat'. Di Tablet/Desktop (>=768px): Selalu tampil 65-70% */}
           <div
             className={`flex-1 flex flex-col justify-between bg-slate-950/40 w-full transition-all ${
               mobileView === 'list' ? 'hidden md:flex' : 'flex'
@@ -297,10 +328,8 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           >
             {activeContact ? (
               <>
-                {/* Header Percakapan Kontak + Tombol Kembali Mobile */}
                 <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-3">
-                    {/* Tombol Kembali Mobile (<768px) */}
                     <button
                       onClick={() => setMobileView('list')}
                       className="md:hidden p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium"
@@ -325,7 +354,6 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                   </div>
                 </div>
 
-                {/* Area Stream Messages */}
                 <div className="p-4 space-y-3 overflow-y-auto flex-1">
                   {activeConversation.map((msg) => (
                     <div
@@ -440,14 +468,39 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
         </div>
 
         {/* Media Assets Browser (1 col) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg flex flex-col justify-between">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-              <h3 className="text-sm md:text-base font-bold text-slate-100 flex items-center gap-2">
-                <Folder className="w-5 h-5 text-indigo-400 shrink-0" />
-                Daftar Media Lokal
-              </h3>
-              <span className="text-[10px] md:text-xs text-slate-500 font-mono">./media_assets</span>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+              <div>
+                <h3 className="text-sm md:text-base font-bold text-slate-100 flex items-center gap-2">
+                  <Folder className="w-5 h-5 text-indigo-400 shrink-0" />
+                  Daftar Media Lokal
+                </h3>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">./media_assets</p>
+              </div>
+
+              {/* Upload Media Button */}
+              <label className="cursor-pointer px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-colors">
+                {uploadingMedia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                <span>Tambah File</span>
+                <input
+                  type="file"
+                  onChange={handleUploadMediaFile}
+                  disabled={uploadingMedia}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Explanation Note Banner */}
+            <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[11px] text-indigo-300 space-y-1 mb-3">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Info className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Fungsi AI Tool Calling Media:</span>
+              </div>
+              <p className="text-slate-300 leading-normal">
+                File di folder ini digunakan oleh AI Agent (DeepSeek) untuk **dikirimkan otomatis via WhatsApp** ketika pelanggan/kontak meminta brosur, katalog, dokumen, atau gambar di chat.
+              </p>
             </div>
 
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
@@ -455,20 +508,44 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                 mediaFiles.map((file, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center gap-3 hover:border-slate-700 transition-colors"
+                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-2 hover:border-slate-700 transition-colors"
                   >
-                    <FileText className="w-5 h-5 text-brand-400 shrink-0" />
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-semibold text-slate-200 truncate">{file.fileName}</span>
-                      <span className="text-[10px] text-slate-500">
-                        {(file.sizeBytes / 1024).toFixed(1)} KB
-                      </span>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <FileText className="w-5 h-5 text-brand-400 shrink-0" />
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs font-semibold text-slate-200 truncate">{file.fileName}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {(file.sizeBytes / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons: Preview & Delete */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {file.previewUrl && (
+                        <a
+                          href={`http://localhost:5000${file.previewUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-900 rounded-lg transition-colors"
+                          title="Preview File"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleDeleteMediaFile(file.fileName)}
+                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition-colors"
+                        title="Hapus File"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                  Belum ada file di folder ./media_assets
+                  Belum ada file di folder ./media_assets. Klik "Tambah File" di atas untuk mengunggah dokumen/brosur.
                 </div>
               )}
             </div>

@@ -31,11 +31,23 @@ async function main() {
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
+
+  const mediaDir = env.MEDIA_STORAGE_ABSOLUTE_PATH;
+  if (!fs.existsSync(mediaDir)) {
+    fs.mkdirSync(mediaDir, { recursive: true });
+  }
+
   const storage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadDir),
     filename: (_req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`),
   });
   const upload = multer({ storage });
+
+  const mediaStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, mediaDir),
+    filename: (_req, file, cb) => cb(null, file.originalname),
+  });
+  const uploadMedia = multer({ storage: mediaStorage });
 
   // --- API AUTHENTICATION ROUTES ---
   app.post('/api/auth/register', async (req, res) => {
@@ -113,7 +125,6 @@ async function main() {
         const facePhotoPath = facePhotoFile?.path || undefined;
         const voiceSamplePath = voiceSampleFile?.path || undefined;
 
-        // 1. Simpan metadata awal ke PostgreSQL via Prisma
         const videoRecord = await dbService.createPresenterVideo({
           userId: req.user?.id,
           title,
@@ -125,7 +136,6 @@ async function main() {
           layoutPreset,
         });
 
-        // 2. Jalankan alur kerja generasi video AI di latar belakang (background process)
         videoGeneratorService.generateVirtualPresenterVideo(videoRecord);
 
         return res.json({
@@ -161,25 +171,60 @@ async function main() {
     return res.json({ message: `Setting ${key} berhasil diperbarui`, settings: dbService.getAllSettings() });
   });
 
-  // --- API MEDIA ASSETS LIST ---
+  // --- API MEDIA ASSETS MANAGEMENT (UPLOAD, LIST, DELETE) ---
   app.get('/api/media-assets', AuthService.verifyTokenMiddleware, (_req, res) => {
-    const mediaDir = env.MEDIA_STORAGE_ABSOLUTE_PATH;
     if (!fs.existsSync(mediaDir)) {
       fs.mkdirSync(mediaDir, { recursive: true });
     }
     const files = fs.readdirSync(mediaDir).map((fileName) => {
-      const stat = fs.statSync(path.join(mediaDir, fileName));
+      const filePath = path.join(mediaDir, fileName);
+      const stat = fs.statSync(filePath);
       return {
         fileName,
         sizeBytes: stat.size,
         updatedAt: stat.mtimeMs,
+        previewUrl: `/media/${encodeURIComponent(fileName)}`,
       };
     });
     return res.json({ files });
   });
 
+  app.post('/api/media-assets/upload', AuthService.verifyTokenMiddleware, uploadMedia.single('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'File media wajib diunggah.' });
+      }
+      logger.info(`[API] New media file uploaded: ${req.file.originalname}`);
+      return res.json({
+        message: `File ${req.file.originalname} berhasil diunggah ke ./media_assets.`,
+        fileName: req.file.originalname,
+        previewUrl: `/media/${encodeURIComponent(req.file.originalname)}`,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message || 'Gagal mengunggah file media' });
+    }
+  });
+
+  app.delete('/api/media-assets/:fileName', AuthService.verifyTokenMiddleware, (req, res) => {
+    try {
+      const fileName = req.params.fileName;
+      const targetPath = path.join(mediaDir, fileName);
+
+      if (fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+        logger.info(`[API] Media file deleted: ${fileName}`);
+        return res.json({ message: `File ${fileName} berhasil dihapus dari ./media_assets.` });
+      } else {
+        return res.status(404).json({ error: 'File tidak ditemukan.' });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message || 'Gagal menghapus file media.' });
+    }
+  });
+
   // Static directory serving
   app.use('/audio', express.static(env.AUDIO_STORAGE_ABSOLUTE_PATH));
+  app.use('/media', express.static(env.MEDIA_STORAGE_ABSOLUTE_PATH));
   app.use('/videos', express.static(path.resolve('./video_outputs')));
 
   try {
