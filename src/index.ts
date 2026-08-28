@@ -98,30 +98,34 @@ async function main() {
       try {
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
         const presentationFile = files?.presentation?.[0];
+        const facePhotoFile = files?.facePhoto?.[0];
+        const voiceSampleFile = files?.voiceSample?.[0];
 
         if (!presentationFile) {
-          return res.status(400).json({ error: 'File presentasi (.ppt/.pptx) wajib diunggah.' });
+          return res.status(400).json({ error: 'File presentasi (.ppt / .pptx / .pdf) wajib diunggah.' });
         }
 
         const title = req.body.title || presentationFile.originalname;
         const language = req.body.language || 'id-ID';
         const layoutPreset = req.body.layoutPreset || 'side_by_side';
+        const scriptNotes = req.body.scriptNotes || undefined;
 
-        const facePhotoPath = files?.facePhoto?.[0]?.path || undefined;
-        const voiceSamplePath = files?.voiceSample?.[0]?.path || undefined;
+        const facePhotoPath = facePhotoFile?.path || undefined;
+        const voiceSamplePath = voiceSampleFile?.path || undefined;
 
-        // 1. Simpan metadata ke PostgreSQL via Prisma
+        // 1. Simpan metadata awal ke PostgreSQL via Prisma
         const videoRecord = await dbService.createPresenterVideo({
           userId: req.user?.id,
           title,
           pptFileName: presentationFile.originalname,
           facePhotoPath,
           voiceSamplePath,
+          scriptText: scriptNotes,
           language,
           layoutPreset,
         });
 
-        // 2. Jalankan pembuatan video AI di latar belakang (background task)
+        // 2. Jalankan alur kerja generasi video AI di latar belakang (background process)
         videoGeneratorService.generateVirtualPresenterVideo(videoRecord);
 
         return res.json({

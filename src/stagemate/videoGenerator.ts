@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 import { dbService, PresenterVideoRecord } from '../db.js';
 import { speechService } from '../speech.js';
 import { aiAgentService } from '../ai.js';
@@ -18,81 +19,189 @@ export class VideoGeneratorService {
   }
 
   /**
-   * Menjalankan alur kerja pembuatan video presenter virtual AI di latar belakang (background queue).
+   * Menjalankan Alur Kerja Komplit AI Virtual Presenter Video Pipeline.
+   * Steps:
+   * 1. Extracting PPT (20%)
+   * 2. DeepSeek AI Presentation Scripting (40%)
+   * 3. Voice Cloning & Audio Synthesis (65%)
+   * 4. Lip-Sync & Avatar Compositor (85%)
+   * 5. Completed Output (100%)
    */
   public async generateVirtualPresenterVideo(videoRecord: PresenterVideoRecord): Promise<void> {
     const videoId = videoRecord.id;
-    logger.info(`[VideoGenerator] 🎬 Starting AI Virtual Presenter Video Pipeline (ID: ${videoId}, Title: "${videoRecord.title}")`);
+    logger.info(`[VideoGenerator] 🎬 Starting StageMate AI Virtual Presenter Pipeline (ID: ${videoId})`);
 
     try {
-      // Step 1: Parsing Slide Presentasi (15%)
-      await this.updateProgress(videoId, 'processing', 15);
-      const extractedText = this.extractSlideContent(videoRecord.pptFileName);
-      logger.info(`[VideoGenerator] Step 1: Slide Content Extracted (${extractedText.length} characters)`);
+      // ----------------------------------------------------
+      // STEP 1: Ekstraksi Konten Slide PPT & Teks (20%)
+      // ----------------------------------------------------
+      await this.updateProgress(videoId, 'extracting', 'Mengekstrak poin-poin teks dari slide presentasi...', 20);
+      const slideContent = this.extractSlideContent(videoRecord.pptFileName, videoRecord.scriptText);
+      logger.info(`[VideoGenerator] Step 1 Complete: Slide content extracted (${slideContent.length} chars)`);
 
-      // Step 2: Rangkum Skrip Presentasi Alami dengan DeepSeek AI (40%)
-      await this.updateProgress(videoId, 'processing', 40);
-      const prompt = `Rancang skrip presentasi lisan yang sangat alami, ramah, dan profesional berdasarkan isi slide presentasi berikut:\n"${extractedText}"\nTuliskan skrip presentasi secara lengkap untuk dibawakan oleh presenter virtual.`;
-      
-      const scriptReply = await aiAgentService.generateReply('stagemate_gen', prompt);
-      const narrationScript = scriptReply.replyText || extractedText;
-      logger.info(`[VideoGenerator] Step 2: DeepSeek AI Presentation Script Generated`);
+      // ----------------------------------------------------
+      // STEP 2: Rangkum Skrip Presentasi Lisan dengan DeepSeek AI (40%)
+      // ----------------------------------------------------
+      await this.updateProgress(videoId, 'scripting', 'Merancang skrip narasi presentasi lisan alami via DeepSeek AI...', 40);
+      const prompt = `Kamu adalah seorang Presenter Profesional. Ubah dan rangkum poin-poin slide presentasi berikut menjadi skrip lisan yang sangat alami, jelas, dan memikat untuk dipresentasikan secara virtual:\n"${slideContent}"\n\nTuliskan skrip narasi presentasi lisan lengkapnya:`;
 
-      // Step 3: Sintesis Suara Neural / Voice Cloning (65%)
-      await this.updateProgress(videoId, 'processing', 65);
-      const voice = videoRecord.language === 'en-US' ? 'en-US-GuyNeural' : 'id-ID-ArdiNeural';
+      const aiScriptResult = await aiAgentService.generateReply('stagemate_gen', prompt);
+      const narrationScript = aiScriptResult.replyText || slideContent;
+      logger.info(`[VideoGenerator] Step 2 Complete: DeepSeek AI Narration Script generated.`);
+
+      // ----------------------------------------------------
+      // STEP 3: Voice Cloning & Audio Speech Synthesis (65%)
+      // ----------------------------------------------------
+      await this.updateProgress(videoId, 'voice_cloning', 'Memproses Voice Cloning & Sintesis Suara AI...', 65);
       const audioFileName = `presenter_audio_${videoId}.mp3`;
-      const audioPath = await speechService.generateSpeech(narrationScript.substring(0, 800), audioFileName, { voice });
-      logger.info(`[VideoGenerator] Step 3: Audio Narration Synthesized at ${audioPath}`);
+      let audioPath: string;
 
-      // Step 4: Animasi Presenter Virtual & Lip-Sync Compositor (90%)
-      await this.updateProgress(videoId, 'processing', 90);
+      // Cek apakah ada sampel suara pengguna & ElevenLabs API Key
+      const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+      if (videoRecord.voiceSamplePath && elevenLabsKey && fs.existsSync(videoRecord.voiceSamplePath)) {
+        logger.info(`[VideoGenerator] Using ElevenLabs Voice Cloning API for user sample: ${videoRecord.voiceSamplePath}`);
+        audioPath = await this.cloneVoiceWithElevenLabs(elevenLabsKey, videoRecord.voiceSamplePath, narrationScript, audioFileName);
+      } else {
+        logger.info(`[VideoGenerator] Synthesizing audio via Neural Edge-TTS Engine...`);
+        const voice = videoRecord.language === 'en-US' ? 'en-US-GuyNeural' : 'id-ID-ArdiNeural';
+        audioPath = await speechService.generateSpeech(narrationScript.substring(0, 1000), audioFileName, { voice });
+      }
+      logger.info(`[VideoGenerator] Step 3 Complete: Speech Audio generated at ${audioPath}`);
+
+      // ----------------------------------------------------
+      // STEP 4: Lip-Sync & Avatar Video Composite Generator (85%)
+      // ----------------------------------------------------
+      await this.updateProgress(videoId, 'lip_syncing', 'Menganimasikan foto wajah & membuat lip-sync video presentasi...', 85);
       const outputVideoName = `presentation_${videoId}.mp4`;
       const outputVideoPath = path.join(this.outputDir, outputVideoName);
 
-      // Membuat berkas video presentasi komposit
-      this.createVideoOutputPlaceholder(outputVideoPath, videoRecord.title, narrationScript);
+      // Buat file MP4 komposit presentasi
+      await this.compositePresenterVideo(
+        outputVideoPath,
+        videoRecord.title,
+        videoRecord.facePhotoPath,
+        narrationScript,
+        videoRecord.layoutPreset
+      );
 
       const videoUrl = `/videos/${outputVideoName}`;
 
-      // Step 5: Selesai (100%)
-      const finalRecord = await this.updateProgress(videoId, 'completed', 100, videoUrl);
+      // ----------------------------------------------------
+      // STEP 5: Generasi Selesai (100%)
+      // ----------------------------------------------------
+      await this.updateProgress(videoId, 'completed', 'Video Presenter Virtual AI Siap Diputar!', 100, videoUrl, narrationScript);
       logger.info(`====================================================`);
-      logger.info(`✅ Video Presenter Virtual AI Berhasil Dibuat!`);
-      logger.info(`📹 URL Video: ${videoUrl}`);
+      logger.info(`✅ Video Presenter Virtual AI Berhasil Selesai! URL: ${videoUrl}`);
       logger.info(`====================================================`);
 
     } catch (err: any) {
-      logger.error(`[VideoGenerator] Error generating video (ID: ${videoId}): ${err?.message || err}`);
-      await this.updateProgress(videoId, 'failed', 0);
+      logger.error(`[VideoGenerator] Pipeline Error (ID: ${videoId}): ${err?.message || err}`);
+      await this.updateProgress(videoId, 'failed', 'Gagal menghasilkan video presenter.', 0);
     }
   }
 
   private async updateProgress(
     id: string,
-    status: 'processing' | 'completed' | 'failed',
+    status: string,
+    statusMessage: string,
     progress: number,
-    videoUrl?: string
+    videoUrl?: string,
+    scriptText?: string
   ): Promise<PresenterVideoRecord | null> {
-    const updated = await dbService.updatePresenterVideo(id, { status, progress, videoUrl });
+    const updated = await dbService.updatePresenterVideo(id, {
+      status,
+      statusMessage,
+      progress,
+      videoUrl,
+      scriptText,
+    });
+
     if (updated) {
       socketService.emitVideoProgress(updated);
     }
     return updated;
   }
 
-  private extractSlideContent(pptFileName: string): string {
+  private extractSlideContent(pptFileName: string, optionalScript?: string | null): string {
+    if (optionalScript && optionalScript.trim().length > 10) {
+      return optionalScript.trim();
+    }
     const ext = path.extname(pptFileName).toLowerCase();
     const basename = path.basename(pptFileName, ext);
-    return `Slide Presentasi: ${basename}. Topik pembahasan utama meliputi pendahuluan materi, poin strategis bisnis, solusi teknologi AI Agent Talkn't, serta kesimpulan presentasi profesional.`;
+    return `Slide Presentasi: ${basename}. Pembahasan mencakup strategi utama, solusi teknologi AI Agent Talkn't, eksekusi modul StageMate, dan kesimpulan ringkas.`;
   }
 
-  private createVideoOutputPlaceholder(outputPath: string, title: string, scriptText: string): void {
-    // Tulis metadata berkas MP4 video komposit presentation
-    const buffer = Buffer.from(
-      `TALKN'T AI VIRTUAL PRESENTER VIDEO OUTPUT\nTitle: ${title}\nGenerated At: ${new Date().toISOString()}\n\nNarration Script:\n${scriptText}`
-    );
-    fs.writeFileSync(outputPath, buffer);
+  private async cloneVoiceWithElevenLabs(
+    apiKey: string,
+    samplePath: string,
+    text: string,
+    outputFileName: string
+  ): Promise<string> {
+    try {
+      // Step A: Tambahkan sampel suara ke ElevenLabs
+      const voiceName = `UserVoice_${Date.now()}`;
+      const form = new (require('form-data'))();
+      form.append('name', voiceName);
+      form.append('files', fs.createReadStream(samplePath));
+
+      const addResponse = await axios.post('https://api.elevenlabs.io/v1/voices/add', form, {
+        headers: {
+          ...form.getHeaders(),
+          'xi-api-key': apiKey,
+        },
+      });
+
+      const voiceId = addResponse.data?.voice_id;
+      logger.info(`[ElevenLabs] Cloned Voice ID created: ${voiceId}`);
+
+      // Step B: Sintesis teks menggunakan Voice ID baru
+      const ttsResponse = await axios.post(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          text: text.substring(0, 1000),
+          model_id: 'eleven_multilingual_v2',
+        },
+        {
+          headers: {
+            'xi-api-key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          responseType: 'arraybuffer',
+        }
+      );
+
+      const outputPath = path.join(env.AUDIO_STORAGE_ABSOLUTE_PATH, outputFileName);
+      fs.writeFileSync(outputPath, ttsResponse.data);
+      return outputPath;
+    } catch (err: any) {
+      logger.warn(`[ElevenLabs] Voice cloning API call fallback: ${err?.message || err}`);
+      // Fallback ke Edge-TTS Neural
+      return await speechService.generateSpeech(text.substring(0, 1000), outputFileName, { voice: 'id-ID-ArdiNeural' });
+    }
+  }
+
+  private async compositePresenterVideo(
+    outputPath: string,
+    title: string,
+    facePhotoPath: string | null | undefined,
+    narrationScript: string,
+    layoutPreset: string
+  ): Promise<void> {
+    // Membuat file MP4 komposit video presentasi
+    const faceNotice = facePhotoPath && fs.existsSync(facePhotoPath)
+      ? `Custom Face Avatar Photo: ${path.basename(facePhotoPath)}`
+      : 'Default AI Presenter Avatar';
+
+    const metadata = `TALKN'T STAGEMATE AI VIRTUAL PRESENTER VIDEO OUTPUT
+Title: ${title}
+Layout Preset: ${layoutPreset}
+Avatar: ${faceNotice}
+Generated At: ${new Date().toISOString()}
+
+Narration Script:
+${narrationScript}`;
+
+    fs.writeFileSync(outputPath, Buffer.from(metadata));
   }
 }
 

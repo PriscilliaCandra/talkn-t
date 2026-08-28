@@ -38,8 +38,10 @@ export interface PresenterVideoRecord {
   pptFileName: string;
   facePhotoPath?: string | null;
   voiceSamplePath?: string | null;
+  scriptText?: string | null;
   videoUrl?: string | null;
-  status: 'processing' | 'completed' | 'failed' | string;
+  status: 'uploading' | 'extracting' | 'scripting' | 'voice_cloning' | 'lip_syncing' | 'completed' | 'failed' | string;
+  statusMessage?: string | null;
   progress: number;
   language: string;
   layoutPreset: string;
@@ -248,6 +250,7 @@ export class DatabaseService {
     pptFileName: string;
     facePhotoPath?: string;
     voiceSamplePath?: string;
+    scriptText?: string;
     language?: string;
     layoutPreset?: string;
   }): Promise<PresenterVideoRecord> {
@@ -259,10 +262,12 @@ export class DatabaseService {
           pptFileName: videoData.pptFileName,
           facePhotoPath: videoData.facePhotoPath,
           voiceSamplePath: videoData.voiceSamplePath,
+          scriptText: videoData.scriptText,
           language: videoData.language || 'id-ID',
           layoutPreset: videoData.layoutPreset || 'side_by_side',
-          status: 'processing',
-          progress: 0,
+          status: 'extracting',
+          statusMessage: 'Mengekstrak teks slide presentasi...',
+          progress: 10,
         },
       });
       return created;
@@ -271,8 +276,9 @@ export class DatabaseService {
       const localVideo: PresenterVideoRecord = {
         id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         ...videoData,
-        status: 'processing',
-        progress: 0,
+        status: 'extracting',
+        statusMessage: 'Mengekstrak teks slide presentasi...',
+        progress: 10,
         language: videoData.language || 'id-ID',
         layoutPreset: videoData.layoutPreset || 'side_by_side',
         createdAt: Date.now(),
@@ -285,7 +291,7 @@ export class DatabaseService {
 
   public async updatePresenterVideo(
     id: string,
-    update: { status?: string; progress?: number; videoUrl?: string }
+    update: { status?: string; statusMessage?: string; progress?: number; videoUrl?: string; scriptText?: string }
   ): Promise<PresenterVideoRecord | null> {
     try {
       const updated = await this.prisma.virtualPresenterVideo.update({
@@ -298,8 +304,10 @@ export class DatabaseService {
       const item = this.localData.presenterVideos.find((v) => v.id === id);
       if (item) {
         if (update.status) item.status = update.status;
+        if (update.statusMessage) item.statusMessage = update.statusMessage;
         if (update.progress !== undefined) item.progress = update.progress;
         if (update.videoUrl) item.videoUrl = update.videoUrl;
+        if (update.scriptText) item.scriptText = update.scriptText;
         this.saveLocalDatabase();
         return item;
       }

@@ -80,8 +80,10 @@ model VirtualPresenterVideo {
   pptFileName     String
   facePhotoPath   String?
   voiceSamplePath String?
+  scriptText      String?  @db.Text
   videoUrl        String?
-  status          String   @default("processing")
+  status          String   @default("uploading")
+  statusMessage   String?  @default("Menyiapkan berkas...")
   progress        Int      @default(0)
   language        String   @default("id-ID")
   layoutPreset    String   @default("side_by_side")
