@@ -29,7 +29,7 @@ const ProtectedLayout: React.FC = () => {
 
     socket.on('wa_qr_code', (data: { qrCode: string }) => {
       setQrCodeText(data.qrCode);
-      setIsQrModalOpen(true);
+      // PENTING: Jangan buka modal secara otomatis. Modal HANYA terbuka jika user mengklik tombol "Hubungkan WhatsApp".
     });
 
     return () => {
