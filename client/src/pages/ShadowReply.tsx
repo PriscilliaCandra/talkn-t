@@ -198,16 +198,16 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Status */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-brand-950/40 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Top Banner & Status - Strict Blue/Navy/White Theme */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="p-2.5 md:p-3 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-2xl shrink-0">
+          <div className="p-2.5 md:p-3 bg-blue-600/20 text-sky-400 border border-blue-500/30 rounded-2xl shrink-0">
             <Bot className="w-6 h-6 md:w-8 md:h-8" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg md:text-xl font-extrabold text-slate-100">Modul 1: ShadowReply</h2>
-              <span className="px-2.5 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 text-[10px] font-bold rounded-full uppercase">
+              <h2 className="text-lg md:text-xl font-extrabold text-white">Modul 1: ShadowReply</h2>
+              <span className="px-2.5 py-0.5 bg-blue-600/20 text-sky-400 border border-blue-500/30 text-[10px] font-bold rounded-full uppercase">
                 WhatsApp AI Agent & Live Chat
               </span>
             </div>
@@ -223,7 +223,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
             <button
               onClick={handleDisconnectWa}
               disabled={disconnecting}
-              className="w-full md:w-auto px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              className="w-full md:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 text-xs font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
               {disconnecting ? 'Memutuskan...' : 'Putuskan WhatsApp'}
@@ -231,7 +231,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           ) : (
             <button
               onClick={onOpenQrModal}
-              className="w-full md:w-auto px-4 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full md:w-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <QrCode className="w-4 h-4" />
               Hubungkan WhatsApp
@@ -241,21 +241,21 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
       </div>
 
       {toastMessage && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
+        <div className="p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl text-sky-300 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-sky-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* --- FITUR REAL-TIME LIVE CHAT INBOX (FULLY RESPONSIVE ALL DEVICES) --- */}
+      {/* --- FITUR REAL-TIME LIVE CHAT INBOX --- */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <h3 className="text-sm md:text-base font-bold text-slate-100 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-emerald-400 shrink-0" />
+          <h3 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-sky-400 shrink-0" />
             Live Chat Inbox WhatsApp
           </h3>
-          <span className="text-xs text-emerald-400 font-medium animate-pulse flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Socket.io Live Stream
+          <span className="text-xs text-sky-400 font-medium animate-pulse flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500" /> Socket.io Live Stream
           </span>
         </div>
 
@@ -267,9 +267,9 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               mobileView === 'chat' ? 'hidden md:flex' : 'flex'
             }`}
           >
-            <div className="px-3 py-2.5 border-b border-slate-800/80 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider flex justify-between items-center shrink-0">
+            <div className="px-3 py-2.5 border-b border-slate-800/80 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex justify-between items-center shrink-0">
               <span>Daftar Obrolan</span>
-              <span className="px-2 py-0.5 bg-slate-800 rounded-full text-slate-400 font-mono text-[10px]">{contacts.length}</span>
+              <span className="px-2 py-0.5 bg-slate-800 rounded-full text-slate-300 font-mono text-[10px]">{contacts.length}</span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -280,31 +280,21 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                     onClick={() => handleSelectContact(c.jid)}
                     className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
                       selectedJid === c.jid
-                        ? 'bg-brand-600/20 border border-brand-500/30 text-slate-100 shadow-md'
+                        ? 'bg-blue-600/20 border border-blue-500/30 text-white shadow-md'
                         : 'hover:bg-slate-900/80 text-slate-400'
                     }`}
                   >
-                    <div
-                      className={`w-10 h-10 rounded-full font-bold flex items-center justify-center shrink-0 shadow-sm text-sm ${
-                        c.isGroup
-                          ? 'bg-indigo-600/30 text-indigo-400 border border-indigo-500/30'
-                          : 'bg-brand-600/30 text-brand-400 border border-brand-500/30'
-                      }`}
-                    >
+                    <div className="w-10 h-10 rounded-full font-bold bg-blue-600/30 text-sky-400 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-sm text-sm">
                       {c.isGroup ? <Users className="w-5 h-5" /> : c.name.charAt(0).toUpperCase()}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-100 truncate">{c.name}</span>
-                        <span className="text-[10px] text-slate-500 shrink-0">{c.time}</span>
+                        <span className="text-xs font-bold text-white truncate">{c.name}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0">{c.time}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-semibold shrink-0 ${
-                            c.isGroup ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-slate-800 text-slate-300 shrink-0">
                           {c.isGroup ? 'Group' : 'Personal'}
                         </span>
                         <p className="text-[11px] text-slate-400 truncate flex-1">{c.lastMsg}</p>
@@ -313,7 +303,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                   </button>
                 ))
               ) : (
-                <div className="p-6 text-center text-xs text-slate-500">
+                <div className="p-6 text-center text-xs text-slate-400">
                   Belum ada percakapan masuk. Hubungkan WhatsApp untuk menyinkronkan chat.
                 </div>
               )}
@@ -338,17 +328,13 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                       <span>Kembali</span>
                     </button>
 
-                    <div
-                      className={`w-9 h-9 rounded-full font-bold flex items-center justify-center text-sm ${
-                        activeContact.isGroup ? 'bg-indigo-600/30 text-indigo-400' : 'bg-brand-600/30 text-brand-400'
-                      }`}
-                    >
+                    <div className="w-9 h-9 rounded-full font-bold bg-blue-600/30 text-sky-400 flex items-center justify-center text-sm">
                       {activeContact.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-100">{activeContact.name}</h4>
+                      <h4 className="text-xs font-bold text-white">{activeContact.name}</h4>
                       <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-slate-500" /> {activeContact.number}
+                        <Phone className="w-3 h-3 text-slate-400" /> {activeContact.number}
                       </p>
                     </div>
                   </div>
@@ -364,19 +350,19 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                         className={`max-w-[85%] md:max-w-md px-4 py-2.5 rounded-2xl text-xs shadow-md ${
                           msg.isFromMe
                             ? msg.isAi
-                              ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-br-none'
-                              : 'bg-indigo-600 text-white rounded-br-none'
-                            : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700'
+                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-none'
+                              : 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-slate-800 text-white rounded-bl-none border border-slate-700'
                         }`}
                       >
                         {msg.isAi && (
-                          <span className="block text-[9px] font-extrabold uppercase text-brand-200 mb-1 tracking-wider">
+                          <span className="block text-[9px] font-extrabold uppercase text-sky-200 mb-1 tracking-wider">
                             🤖 AI Auto-Reply (Talkn't)
                           </span>
                         )}
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
                       </div>
-                      <span className="text-[9px] text-slate-500 mt-1 px-1">
+                      <span className="text-[9px] text-slate-400 mt-1 px-1">
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -384,8 +370,8 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs p-6 text-center">
-                <MessageSquare className="w-10 h-10 text-slate-700 mb-2" />
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs p-6 text-center">
+                <MessageSquare className="w-10 h-10 text-slate-600 mb-2" />
                 Pilih obrolan dari daftar kontak untuk melihat balasan real-time.
               </div>
             )}
@@ -399,8 +385,8 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
         {/* Control Panel Settings (2 cols) */}
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-            <h3 className="text-sm md:text-base font-bold text-slate-100 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-brand-400" />
+            <h3 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-sky-400" />
               Control Panel Persona & Auto-Reply
             </h3>
           </div>
@@ -408,7 +394,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           <form onSubmit={handleSaveSettings} className="space-y-6">
             <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
               <div>
-                <h4 className="text-xs md:text-sm font-semibold text-slate-200">Mode Auto-Reply WhatsApp</h4>
+                <h4 className="text-xs md:text-sm font-semibold text-white">Mode Auto-Reply WhatsApp</h4>
                 <p className="text-[11px] md:text-xs text-slate-400">
                   Aktifkan agar AI membalas obrolan WhatsApp secara otomatis
                 </p>
@@ -416,10 +402,10 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               <button
                 type="button"
                 onClick={() => setAutoReply(!autoReply)}
-                className="text-brand-400 hover:text-brand-300 transition-colors shrink-0"
+                className="text-sky-400 hover:text-sky-300 transition-colors shrink-0"
               >
                 {autoReply ? (
-                  <ToggleRight className="w-9 h-9 md:w-10 md:h-10 text-emerald-500" />
+                  <ToggleRight className="w-9 h-9 md:w-10 md:h-10 text-sky-400" />
                 ) : (
                   <ToggleLeft className="w-9 h-9 md:w-10 md:h-10 text-slate-600" />
                 )}
@@ -433,7 +419,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               <select
                 value={personaType}
                 onChange={(e) => setPersonaType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-brand-500 rounded-xl p-3 text-xs md:text-sm text-slate-200 outline-none"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl p-3 text-xs md:text-sm text-white outline-none"
               >
                 <option value="introvert_casual">Introvert Casual (Santai, Ringkas, Luwes, Rendah Hati)</option>
                 <option value="extrovert_expressive">Extrovert Expressive (Antusias, Ramah, Menggunakan Emoticon)</option>
@@ -450,7 +436,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 placeholder="Tuliskan instruksi persona AI di sini..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-brand-500 rounded-xl p-4 text-xs md:text-sm text-slate-200 placeholder-slate-600 outline-none resize-none"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl p-4 text-xs md:text-sm text-white placeholder-slate-500 outline-none resize-none"
               />
             </div>
 
@@ -458,7 +444,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs md:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs md:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
@@ -467,23 +453,20 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           </form>
         </div>
 
-        {/* Media Assets Browser (1 col) - FULL WIDTH HEADING & FULL WIDTH BUTTON BELOW */}
+        {/* Media Assets Browser (1 col) */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
-            {/* Header Bersih & Penuh Tanpa Truncate */}
+            {/* Header Bersih TANPA KODE BARIS ./media_assets */}
             <div className="pb-3 border-b border-slate-800 space-y-3 mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-sky-400 shrink-0">
                   <Folder className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-100 leading-tight">Daftar Media Lokal</h3>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">./media_assets</p>
-                </div>
+                <h3 className="text-base font-bold text-white leading-tight">Daftar Media Lokal</h3>
               </div>
 
               {/* Upload Media Button Full-Width di Bawah Judul */}
-              <label className="w-full cursor-pointer py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95">
+              <label className="w-full cursor-pointer py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95">
                 {uploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 <span>Tambah File Media</span>
                 <input
@@ -495,14 +478,14 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               </label>
             </div>
 
-            {/* Banner Edukasi AI */}
-            <div className="p-3.5 bg-indigo-950/60 border border-indigo-500/20 rounded-xl text-[11px] text-slate-300 space-y-1 mb-3 shadow-inner">
-              <div className="flex items-center gap-1.5 font-bold text-indigo-400">
+            {/* Banner Edukasi AI (Tema Biru/Hitam/Putih) */}
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-[11px] text-slate-300 space-y-1 mb-3 shadow-inner">
+              <div className="flex items-center gap-1.5 font-bold text-sky-400">
                 <Info className="w-4 h-4 shrink-0" />
                 <span>Fungsi AI Tool Calling Media:</span>
               </div>
               <p className="leading-relaxed text-slate-300">
-                File di folder ini digunakan AI Agent (DeepSeek) untuk <strong className="text-slate-100 font-semibold">dikirimkan otomatis via WhatsApp</strong> ketika kontak meminta brosur, katalog, dokumen, atau gambar di chat.
+                File di folder ini digunakan AI Agent (DeepSeek) untuk <strong className="text-white font-semibold">dikirimkan otomatis via WhatsApp</strong> ketika kontak meminta brosur, katalog, dokumen, atau gambar di chat.
               </p>
             </div>
 
@@ -515,12 +498,12 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                     className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-2 hover:border-slate-700 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <FileText className="w-4 h-4 text-brand-400 shrink-0" />
+                      <FileText className="w-4 h-4 text-sky-400 shrink-0" />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold text-slate-200 truncate" title={file.fileName}>
+                        <span className="text-xs font-semibold text-white truncate" title={file.fileName}>
                           {file.fileName}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">
+                        <span className="text-[10px] text-slate-400 font-mono">
                           {(file.sizeBytes / 1024).toFixed(1)} KB
                         </span>
                       </div>
@@ -533,7 +516,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                           href={`http://localhost:5000${file.previewUrl}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-900 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-slate-900 rounded-lg transition-colors"
                           title="Preview File"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -541,7 +524,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                       )}
                       <button
                         onClick={() => handleDeleteMediaFile(file.fileName)}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-slate-900 rounded-lg transition-colors"
                         title="Hapus File"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -550,10 +533,10 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                   </div>
                 ))
               ) : (
-                <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-800/80 rounded-xl bg-slate-950/40 space-y-1">
-                  <Folder className="w-8 h-8 text-slate-700 mx-auto mb-1" />
-                  <p className="font-semibold text-slate-400">Folder Media Kosong</p>
-                  <p className="text-[11px] text-slate-500">
+                <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl bg-slate-950/40 space-y-1">
+                  <Folder className="w-8 h-8 text-slate-600 mx-auto mb-1" />
+                  <p className="font-semibold text-slate-300">Folder Media Kosong</p>
+                  <p className="text-[11px] text-slate-400">
                     Klik "Tambah File Media" di atas untuk mengunggah dokumen/brosur.
                   </p>
                 </div>
