@@ -467,25 +467,25 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
           </form>
         </div>
 
-        {/* Media Assets Browser (1 col) - RAPI DAN MINIMALIS */}
+        {/* Media Assets Browser (1 col) - FULL WIDTH HEADING & FULL WIDTH BUTTON BELOW */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
-            {/* Header Rapi & Clean */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 gap-2 mb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Folder className="w-4 h-4" />
+            {/* Header Bersih & Penuh Tanpa Truncate */}
+            <div className="pb-3 border-b border-slate-800 space-y-3 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Folder className="w-5 h-5" />
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-slate-100 truncate">Daftar Media Lokal</h3>
-                  <p className="text-[10px] text-slate-400 font-mono leading-none">./media_assets</p>
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 leading-tight">Daftar Media Lokal</h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">./media_assets</p>
                 </div>
               </div>
 
-              {/* Upload Media Button Single-Line Compact */}
-              <label className="cursor-pointer shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all active:scale-95">
-                {uploadingMedia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                <span>Tambah File</span>
+              {/* Upload Media Button Full-Width di Bawah Judul */}
+              <label className="w-full cursor-pointer py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95">
+                {uploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                <span>Tambah File Media</span>
                 <input
                   type="file"
                   onChange={handleUploadMediaFile}
@@ -495,8 +495,8 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
               </label>
             </div>
 
-            {/* Explanation Note Banner Rapi Tanpa Markdown Raw Syntax */}
-            <div className="p-3 bg-indigo-950/60 border border-indigo-500/20 rounded-xl text-[11px] text-slate-300 space-y-1 mb-3 shadow-inner">
+            {/* Banner Edukasi AI */}
+            <div className="p-3.5 bg-indigo-950/60 border border-indigo-500/20 rounded-xl text-[11px] text-slate-300 space-y-1 mb-3 shadow-inner">
               <div className="flex items-center gap-1.5 font-bold text-indigo-400">
                 <Info className="w-4 h-4 shrink-0" />
                 <span>Fungsi AI Tool Calling Media:</span>
@@ -554,7 +554,7 @@ export const ShadowReply: React.FC<ShadowReplyProps> = ({ waStatus, onOpenQrModa
                   <Folder className="w-8 h-8 text-slate-700 mx-auto mb-1" />
                   <p className="font-semibold text-slate-400">Folder Media Kosong</p>
                   <p className="text-[11px] text-slate-500">
-                    Klik "Tambah File" di atas untuk mengunggah dokumen/brosur.
+                    Klik "Tambah File Media" di atas untuk mengunggah dokumen/brosur.
                   </p>
                 </div>
               )}
