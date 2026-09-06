@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
-import { Video, Upload, FileText, UserCheck, Mic, Play, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon } from 'lucide-react';
+import { Video, Upload, FileText, UserCheck, Mic, Play, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Check } from 'lucide-react';
 
 export interface PresenterVideo {
   id: string;
@@ -73,17 +73,17 @@ export const StageMate: React.FC = () => {
     e.preventDefault();
 
     if (!presentationFile) {
-      alert('File Presentasi (.ppt / .pptx / .pdf) wajib diunggah.');
+      alert('File Presentasi (.ppt / .pptx / .pdf) wajib dipilih.');
       return;
     }
 
     if (!facePhotoFile) {
-      alert('Foto Wajah (.jpg / .png) wajib diunggah untuk generasi avatar Lip-Sync.');
+      alert('Foto Wajah (.jpg / .png) wajib dipilih untuk generasi avatar Lip-Sync.');
       return;
     }
 
     if (!voiceSampleFile) {
-      alert('Sampel Audio Suara (.mp3 / .wav) wajib diunggah untuk Voice Cloning.');
+      alert('Sampel Audio Suara (.mp3 / .wav) wajib dipilih untuk Voice Cloning.');
       return;
     }
 
@@ -114,7 +114,7 @@ export const StageMate: React.FC = () => {
       setVoiceSampleFile(null);
       setScriptNotes('');
     } catch (err: any) {
-      alert(err?.response?.data?.error || 'Gagal memulai generasi video presenter.');
+      alert(err?.response?.data?.error || 'Gagal memulai generasi video presenter. Pastikan server backend running di port 5000.');
     } finally {
       setGenerating(false);
     }
@@ -152,7 +152,7 @@ export const StageMate: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Hasilkan video presentasi profesional di mana wajah & suara Anda sendiri tampil membacakan slide
+              Pilih 3 file media di bawah, lalu klik <strong>"Hasilkan Video Presentasi AI"</strong> untuk memulai proses generasi video.
             </p>
           </div>
         </div>
@@ -178,12 +178,27 @@ export const StageMate: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-400 mb-3">File slide (.ppt / .pptx / .pdf)</p>
             </div>
-            <label className="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-slate-950 min-h-[110px]">
-              <FileText className="w-6 h-6 text-sky-400 mb-1" />
-              <span className="text-xs font-bold text-white truncate max-w-[200px]">
-                {presentationFile ? presentationFile.name : 'Unggah File PPT/PDF'}
-              </span>
-              <span className="text-[10px] text-slate-400 mt-1">Klik untuk memilih file</span>
+
+            <label className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all text-center min-h-[110px] ${
+              presentationFile
+                ? 'bg-blue-600/10 border-blue-500 text-white'
+                : 'bg-slate-950 border-slate-700 hover:border-blue-500'
+            }`}>
+              {presentationFile ? (
+                <>
+                  <CheckCircle2 className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-sky-300 truncate max-w-[200px]" title={presentationFile.name}>
+                    {presentationFile.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1">✓ Berkas Siap • Klik untuk Ganti</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-white">Pilih File PPT/PDF</span>
+                  <span className="text-[10px] text-slate-400 mt-1">Klik untuk memilih file</span>
+                </>
+              )}
               <input
                 type="file"
                 accept=".ppt,.pptx,.pdf"
@@ -203,12 +218,27 @@ export const StageMate: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-400 mb-3">Foto wajah Anda (.jpg / .png) untuk Lip-Sync</p>
             </div>
-            <label className="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-slate-950 min-h-[110px]">
-              <UserCheck className="w-6 h-6 text-sky-400 mb-1" />
-              <span className="text-xs font-bold text-white truncate max-w-[200px]">
-                {facePhotoFile ? facePhotoFile.name : 'Unggah Foto Wajah'}
-              </span>
-              <span className="text-[10px] text-slate-400 mt-1">Foto tampak depan jernih</span>
+
+            <label className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all text-center min-h-[110px] ${
+              facePhotoFile
+                ? 'bg-blue-600/10 border-blue-500 text-white'
+                : 'bg-slate-950 border-slate-700 hover:border-blue-500'
+            }`}>
+              {facePhotoFile ? (
+                <>
+                  <CheckCircle2 className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-sky-300 truncate max-w-[200px]" title={facePhotoFile.name}>
+                    {facePhotoFile.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1">✓ Foto Siap • Klik untuk Ganti</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-white">Pilih Foto Wajah</span>
+                  <span className="text-[10px] text-slate-400 mt-1">Foto tampak depan jernih</span>
+                </>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -228,12 +258,27 @@ export const StageMate: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-400 mb-3">Audio suara Anda (.mp3 / .wav 10-30s)</p>
             </div>
-            <label className="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-slate-950 min-h-[110px]">
-              <Mic className="w-6 h-6 text-sky-400 mb-1" />
-              <span className="text-xs font-bold text-white truncate max-w-[200px]">
-                {voiceSampleFile ? voiceSampleFile.name : 'Unggah Sampel Suara'}
-              </span>
-              <span className="text-[10px] text-slate-400 mt-1">Rekaman audio jernih untuk cloning</span>
+
+            <label className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all text-center min-h-[110px] ${
+              voiceSampleFile
+                ? 'bg-blue-600/10 border-blue-500 text-white'
+                : 'bg-slate-950 border-slate-700 hover:border-blue-500'
+            }`}>
+              {voiceSampleFile ? (
+                <>
+                  <CheckCircle2 className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-sky-300 truncate max-w-[200px]" title={voiceSampleFile.name}>
+                    {voiceSampleFile.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1">✓ Audio Siap • Klik untuk Ganti</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-6 h-6 text-sky-400 mb-1" />
+                  <span className="text-xs font-bold text-white">Pilih Sampel Suara</span>
+                  <span className="text-[10px] text-slate-400 mt-1">Rekaman audio jernih untuk cloning</span>
+                </>
+              )}
               <input
                 type="file"
                 accept="audio/*"
@@ -315,7 +360,7 @@ export const StageMate: React.FC = () => {
               {generating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memulai Generasi...</span>
+                  <span>Mengunggah & Generasi...</span>
                 </>
               ) : (
                 <>
@@ -418,7 +463,7 @@ export const StageMate: React.FC = () => {
             ))
           ) : (
             <div className="col-span-full p-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
-              Belum ada video presentasi yang dihasilkan. Unggah 3 file media di atas untuk mulai membuat video AI presenter.
+              Belum ada video presentasi yang dihasilkan. Pilih 3 file media di atas untuk mulai membuat video AI presenter.
             </div>
           )}
         </div>
