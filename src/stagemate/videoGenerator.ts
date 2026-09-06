@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
+import FormData from 'form-data';
 import { dbService, PresenterVideoRecord } from '../db.js';
 import { speechService } from '../speech.js';
 import { aiAgentService } from '../ai.js';
@@ -140,7 +141,7 @@ export class VideoGeneratorService {
     try {
       // Step A: Tambahkan sampel suara ke ElevenLabs
       const voiceName = `UserVoice_${Date.now()}`;
-      const form = new (require('form-data'))();
+      const form = new FormData();
       form.append('name', voiceName);
       form.append('files', fs.createReadStream(samplePath));
 
