@@ -44,11 +44,17 @@ export class VideoGeneratorService {
       // STEP 2: Rangkum Skrip Presentasi Lisan dengan DeepSeek AI (40%)
       // ----------------------------------------------------
       await this.updateProgress(videoId, 'scripting', 'Merancang skrip narasi presentasi lisan alami via DeepSeek AI...', 40);
-      const prompt = `Kamu adalah seorang Presenter Profesional. Ubah dan rangkum poin-poin slide presentasi berikut menjadi skrip lisan yang sangat alami, jelas, dan memikat untuk dipresentasikan secara virtual:\n"${slideContent}"\n\nTuliskan skrip narasi presentasi lisan lengkapnya:`;
-
-      const aiScriptResult = await aiAgentService.generateReply('stagemate_gen', prompt);
-      const narrationScript = aiScriptResult.replyText || slideContent;
-      logger.info(`[VideoGenerator] Step 2 Complete: DeepSeek AI Narration Script generated.`);
+      let narrationScript = slideContent;
+      try {
+        const prompt = `Kamu adalah seorang Presenter Profesional. Ubah dan rangkum poin-poin slide presentasi berikut menjadi skrip lisan yang sangat alami, jelas, dan memikat untuk dipresentasikan secara virtual:\n"${slideContent}"\n\nTuliskan skrip narasi presentasi lisan lengkapnya:`;
+        const aiScriptResult = await aiAgentService.generateReply('stagemate_gen', prompt);
+        if (aiScriptResult?.replyText) {
+          narrationScript = aiScriptResult.replyText;
+        }
+      } catch (scriptErr: any) {
+        logger.warn(`[VideoGenerator] DeepSeek AI script generation fallback: ${scriptErr?.message || scriptErr}`);
+      }
+      logger.info(`[VideoGenerator] Step 2 Complete: Narration script ready.`);
 
       // ----------------------------------------------------
       // STEP 3: Voice Cloning & Audio Speech Synthesis (65%)
@@ -57,7 +63,6 @@ export class VideoGeneratorService {
       const audioFileName = `presenter_audio_${videoId}.mp3`;
       let audioPath: string;
 
-      // Cek apakah ada sampel suara pengguna & ElevenLabs API Key
       const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
       if (videoRecord.voiceSamplePath && elevenLabsKey && fs.existsSync(videoRecord.voiceSamplePath)) {
         logger.info(`[VideoGenerator] Using ElevenLabs Voice Cloning API for user sample: ${videoRecord.voiceSamplePath}`);
@@ -76,7 +81,6 @@ export class VideoGeneratorService {
       const outputVideoName = `presentation_${videoId}.mp4`;
       const outputVideoPath = path.join(this.outputDir, outputVideoName);
 
-      // Buat file MP4 komposit presentasi
       await this.compositePresenterVideo(
         outputVideoPath,
         videoRecord.title,
@@ -96,8 +100,9 @@ export class VideoGeneratorService {
       logger.info(`====================================================`);
 
     } catch (err: any) {
-      logger.error(`[VideoGenerator] Pipeline Error (ID: ${videoId}): ${err?.message || err}`);
-      await this.updateProgress(videoId, 'failed', 'Gagal menghasilkan video presenter.', 0);
+      const errMsg = err?.message || String(err) || 'Terjadi kesalahan sistem pada pipeline video.';
+      logger.error(`[VideoGenerator] Pipeline Error (ID: ${videoId}): ${errMsg}`);
+      await this.updateProgress(videoId, 'failed', `Gagal: ${errMsg}`, 0);
     }
   }
 
@@ -139,7 +144,6 @@ export class VideoGeneratorService {
     outputFileName: string
   ): Promise<string> {
     try {
-      // Step A: Tambahkan sampel suara ke ElevenLabs
       const voiceName = `UserVoice_${Date.now()}`;
       const form = new FormData();
       form.append('name', voiceName);
@@ -155,7 +159,6 @@ export class VideoGeneratorService {
       const voiceId = addResponse.data?.voice_id;
       logger.info(`[ElevenLabs] Cloned Voice ID created: ${voiceId}`);
 
-      // Step B: Sintesis teks menggunakan Voice ID baru
       const ttsResponse = await axios.post(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
@@ -176,7 +179,6 @@ export class VideoGeneratorService {
       return outputPath;
     } catch (err: any) {
       logger.warn(`[ElevenLabs] Voice cloning API call fallback: ${err?.message || err}`);
-      // Fallback ke Edge-TTS Neural
       return await speechService.generateSpeech(text.substring(0, 1000), outputFileName, { voice: 'id-ID-ArdiNeural' });
     }
   }
@@ -188,7 +190,6 @@ export class VideoGeneratorService {
     narrationScript: string,
     layoutPreset: string
   ): Promise<void> {
-    // Membuat file MP4 komposit video presentasi
     const faceNotice = facePhotoPath && fs.existsSync(facePhotoPath)
       ? `Custom Face Avatar Photo: ${path.basename(facePhotoPath)}`
       : 'Default AI Presenter Avatar';
