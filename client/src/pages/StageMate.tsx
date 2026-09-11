@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
-import { Video, Upload, FileText, UserCheck, Mic, Play, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Volume2 } from 'lucide-react';
+import { Video, Upload, FileText, UserCheck, Mic, Play, Pause, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 
 export interface PresenterVideo {
   id: string;
@@ -19,6 +19,220 @@ export interface PresenterVideo {
   layoutPreset: string;
   createdAt: string | number;
 }
+
+interface VideoStagePlayerProps {
+  video: PresenterVideo;
+  getMediaUrl: (path?: string | null) => string;
+}
+
+const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(15); // default fallback 15s
+  const [isMuted, setIsMuted] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      pausePlayback();
+    } else {
+      startPlayback();
+    }
+  };
+
+  const startPlayback = () => {
+    setIsPlaying(true);
+
+    const audioEl = audioRef.current;
+    let playedViaAudioTag = false;
+
+    if (audioEl && video.audioUrl) {
+      audioEl.muted = isMuted;
+      audioEl
+        .play()
+        .then(() => {
+          playedViaAudioTag = true;
+          if (audioEl.duration && !isNaN(audioEl.duration)) {
+            setDuration(Math.ceil(audioEl.duration));
+          }
+        })
+        .catch((err) => {
+          console.warn('Audio tag play fallback to Web Speech API:', err);
+          fallbackWebSpeech();
+        });
+    } else {
+      fallbackWebSpeech();
+    }
+
+    // Timer simulation & talking state
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrentTime((prev) => {
+        if (prev >= duration) {
+          pausePlayback();
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const fallbackWebSpeech = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const script = video.scriptText || `Presentasi ${video.title}. Pembahasan mencakup poin-poin utama slide.`;
+      const utterance = new SpeechSynthesisUtterance(script);
+      utterance.lang = video.language === 'en-US' ? 'en-US' : 'id-ID';
+      utterance.rate = 1.0;
+      utterance.onend = () => pausePlayback();
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const pausePlayback = () => {
+    setIsPlaying(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (audioRef.current) audioRef.current.pause();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  };
+
+  const handleReset = () => {
+    pausePlayback();
+    setCurrentTime(0);
+    if (audioRef.current) audioRef.current.currentTime = 0;
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-3 my-2 space-y-3 shadow-lg">
+      {/* Main Interactive Stage Display */}
+      <div className="relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col justify-between p-3 border border-slate-800 shadow-inner group">
+        {/* Top Header Badge */}
+        <div className="flex items-center justify-between z-10">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/40 border border-blue-500/40 text-[9px] font-bold text-sky-300 uppercase">
+            <Video className="w-3 h-3 text-sky-400" />
+            <span>Panggung Presenter AI ({video.layoutPreset || 'Side-by-Side'})</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-1 bg-slate-900/80 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
+              title={isMuted ? 'Buka Suara' : 'Mute'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-sky-400" />}
+            </button>
+            <button
+              onClick={handleReset}
+              className="p-1 bg-slate-900/80 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
+              title="Reset Video"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Center Presenter & Slide Composite */}
+        <div className="flex items-center justify-between w-full h-[65%] gap-2 z-10 my-auto">
+          {/* Slide Box */}
+          <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex flex-col justify-between h-full shadow-md">
+            <span className="text-[9px] font-bold text-sky-400 uppercase">Slide Presentasi</span>
+            <p className="text-xs font-extrabold text-white line-clamp-2">{video.title}</p>
+            <span className="text-[9px] text-slate-400 truncate">File: {video.pptFileName}</span>
+          </div>
+
+          {/* Presenter Face Photo Avatar (Animates on Playback) */}
+          <div className={`w-28 h-full bg-slate-950 border rounded-lg overflow-hidden relative flex flex-col items-center justify-center shrink-0 transition-all ${
+            isPlaying ? 'border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.4)] scale-105' : 'border-slate-800'
+          }`}>
+            {video.facePhotoPath ? (
+              <img
+                src={getMediaUrl(video.facePhotoPath)}
+                alt="AI Presenter Face Avatar"
+                className={`w-full h-full object-cover transition-transform duration-300 ${isPlaying ? 'animate-pulse scale-110' : ''}`}
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <UserCheck className="w-8 h-8 text-sky-400 mb-1" />
+            )}
+
+            {isPlaying && (
+              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-blue-600/90 rounded text-[8px] font-bold text-white uppercase flex items-center gap-1 animate-bounce">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-300 animate-ping" />
+                <span>Speaking</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Big Center Overlay Play/Pause Button */}
+        <button
+          onClick={handleTogglePlay}
+          className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-xl backdrop-blur-sm transition-all active:scale-95 z-20"
+          title={isPlaying ? 'Jeda Presentasi' : 'Putar Video Presenter AI'}
+        >
+          {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+        </button>
+
+        {/* Bottom Timeline Control Bar */}
+        <div className="w-full space-y-1 z-10 pt-1">
+          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden cursor-pointer">
+            <div
+              className="h-full bg-sky-400 transition-all duration-300"
+              style={{ width: `${Math.min((currentTime / duration) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] text-slate-300 font-mono">
+            <span className="text-sky-400 font-bold">{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+
+        {/* Hidden Audio Tag for Audio URL Playback */}
+        {video.audioUrl && (
+          <audio
+            ref={audioRef}
+            src={`http://localhost:5000${video.audioUrl}`}
+            onEnded={pausePlayback}
+            onLoadedMetadata={(e) => {
+              const dur = (e.target as HTMLAudioElement).duration;
+              if (dur && !isNaN(dur)) setDuration(Math.ceil(dur));
+            }}
+            className="hidden"
+          />
+        )}
+      </div>
+
+      {/* Full Narration Script Text */}
+      {video.scriptText && (
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
+            <FileText className="w-3 h-3 text-sky-400" /> Skrip Lisan Narasi Presentasi
+          </label>
+          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-300 max-h-24 overflow-y-auto leading-relaxed font-sans">
+            {video.scriptText}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const StageMate: React.FC = () => {
   const [title, setTitle] = useState('');
@@ -442,71 +656,9 @@ export const StageMate: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Virtual Presenter Interactive Visual & Audio Player */}
+                  {/* Virtual Presenter Stage Video Player */}
                   {vid.status === 'completed' && (
-                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-3 my-2 space-y-3">
-                      {/* Virtual Stage Visual Layout */}
-                      <div className="relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-4 border border-slate-800 shadow-inner">
-                        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/40 border border-blue-500/40 text-[9px] font-bold text-sky-300 uppercase">
-                          <Video className="w-3 h-3 text-sky-400" />
-                          <span>Virtual Stage ({vid.layoutPreset || 'Side-by-Side'})</span>
-                        </div>
-
-                        <div className="flex items-center justify-between w-full h-full gap-2 pt-4">
-                          {/* Slide Title Preview */}
-                          <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex flex-col justify-between h-full">
-                            <span className="text-[9px] font-bold text-sky-400 uppercase">Slide Presentation</span>
-                            <p className="text-xs font-bold text-white line-clamp-2">{vid.title}</p>
-                            <span className="text-[9px] text-slate-400 truncate">File: {vid.pptFileName}</span>
-                          </div>
-
-                          {/* Presenter Face Avatar Photo */}
-                          <div className="w-24 h-full bg-slate-950 border border-blue-500/30 rounded-lg overflow-hidden relative flex flex-col items-center justify-center shrink-0">
-                            {vid.facePhotoPath ? (
-                              <img
-                                src={getMediaUrl(vid.facePhotoPath)}
-                                alt="AI Presenter Face Avatar"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  // Fallback jika tidak dapat dimuat
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <UserCheck className="w-8 h-8 text-sky-400 mb-1" />
-                            )}
-                            <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Audio Narration Speech Player */}
-                      {vid.audioUrl && (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-sky-400 uppercase flex items-center gap-1">
-                            <Volume2 className="w-3 h-3" /> Pemutar Suara Narasi AI (Voice Cloned)
-                          </label>
-                          <audio
-                            controls
-                            key={vid.audioUrl}
-                            src={`http://localhost:5000${vid.audioUrl}`}
-                            className="w-full h-8 rounded-lg outline-none"
-                          />
-                        </div>
-                      )}
-
-                      {/* Full Narration Script Text */}
-                      {vid.scriptText && (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
-                            <FileText className="w-3 h-3 text-sky-400" /> Skrip Lisan Narasi Presentasi
-                          </label>
-                          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-300 max-h-24 overflow-y-auto leading-relaxed">
-                            {vid.scriptText}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <VideoStagePlayer video={vid} getMediaUrl={getMediaUrl} />
                   )}
                 </div>
 
