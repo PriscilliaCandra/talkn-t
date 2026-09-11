@@ -74,6 +74,8 @@ export class VideoGeneratorService {
       }
       logger.info(`[VideoGenerator] Step 3 Complete: Speech Audio generated at ${audioPath}`);
 
+      const audioUrl = `/audio/${audioFileName}`;
+
       // ----------------------------------------------------
       // STEP 4: Lip-Sync & Avatar Video Composite Generator (85%)
       // ----------------------------------------------------
@@ -94,9 +96,9 @@ export class VideoGeneratorService {
       // ----------------------------------------------------
       // STEP 5: Generasi Selesai (100%)
       // ----------------------------------------------------
-      await this.updateProgress(videoId, 'completed', 'Video Presenter Virtual AI Siap Diputar!', 100, videoUrl, narrationScript);
+      await this.updateProgress(videoId, 'completed', 'Video Presenter Virtual AI Siap Diputar!', 100, videoUrl, narrationScript, audioUrl);
       logger.info(`====================================================`);
-      logger.info(`✅ Video Presenter Virtual AI Berhasil Selesai! URL: ${videoUrl}`);
+      logger.info(`✅ Video Presenter Virtual AI Berhasil Selesai! Video: ${videoUrl}, Audio: ${audioUrl}`);
       logger.info(`====================================================`);
 
     } catch (err: any) {
@@ -112,7 +114,8 @@ export class VideoGeneratorService {
     statusMessage: string,
     progress: number,
     videoUrl?: string,
-    scriptText?: string
+    scriptText?: string,
+    audioUrl?: string
   ): Promise<PresenterVideoRecord | null> {
     const updated = await dbService.updatePresenterVideo(id, {
       status,
@@ -120,6 +123,7 @@ export class VideoGeneratorService {
       progress,
       videoUrl,
       scriptText,
+      audioUrl,
     });
 
     if (updated) {

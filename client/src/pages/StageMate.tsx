@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
-import { Video, Upload, FileText, UserCheck, Mic, Play, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Check } from 'lucide-react';
+import { Video, Upload, FileText, UserCheck, Mic, Play, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Volume2 } from 'lucide-react';
 
 export interface PresenterVideo {
   id: string;
@@ -11,6 +11,7 @@ export interface PresenterVideo {
   voiceSamplePath?: string;
   scriptText?: string;
   videoUrl?: string;
+  audioUrl?: string;
   status: 'uploading' | 'extracting' | 'scripting' | 'voice_cloning' | 'lip_syncing' | 'completed' | 'failed' | string;
   statusMessage?: string;
   progress: number;
@@ -435,14 +436,69 @@ export const StageMate: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Video Player saat Completed */}
-                  {vid.status === 'completed' && vid.videoUrl && (
-                    <div className="rounded-lg overflow-hidden border border-slate-800 bg-black aspect-video my-2">
-                      <video
-                        controls
-                        src={`http://localhost:5000${vid.videoUrl}`}
-                        className="w-full h-full object-cover"
-                      />
+                  {/* Virtual Presenter Interactive Visual & Audio Player */}
+                  {vid.status === 'completed' && (
+                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-3 my-2 space-y-3">
+                      {/* Virtual Stage Visual Layout */}
+                      <div className="relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-4 border border-slate-800 shadow-inner">
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/40 border border-blue-500/40 text-[9px] font-bold text-sky-300 uppercase">
+                          <Video className="w-3 h-3 text-sky-400" />
+                          <span>Virtual Stage ({vid.layoutPreset || 'Side-by-Side'})</span>
+                        </div>
+
+                        <div className="flex items-center justify-between w-full h-full gap-2 pt-4">
+                          {/* Slide Title Preview */}
+                          <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex flex-col justify-between h-full">
+                            <span className="text-[9px] font-bold text-sky-400 uppercase">Slide Presentation</span>
+                            <p className="text-xs font-bold text-white line-clamp-2">{vid.title}</p>
+                            <span className="text-[9px] text-slate-400">File: {vid.pptFileName}</span>
+                          </div>
+
+                          {/* Presenter Face Avatar Photo */}
+                          <div className="w-24 h-full bg-slate-950 border border-blue-500/30 rounded-lg overflow-hidden relative flex flex-col items-center justify-center shrink-0">
+                            {vid.facePhotoPath ? (
+                              <img
+                                src={`http://localhost:5000/media/${vid.facePhotoPath.replace(/\\/g, '/').split('/').pop()}`}
+                                alt="AI Presenter Face Avatar"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Fallback jika path foto lokal
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <UserCheck className="w-8 h-8 text-sky-400 mb-1" />
+                            )}
+                            <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Audio Narration Speech Player */}
+                      {vid.audioUrl && (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-sky-400 uppercase flex items-center gap-1">
+                            <Volume2 className="w-3 h-3" /> Pemutar Suara Narasi AI (Voice Cloned)
+                          </label>
+                          <audio
+                            controls
+                            src={`http://localhost:5000${vid.audioUrl}`}
+                            className="w-full h-8 rounded-lg outline-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Full Narration Script Text */}
+                      {vid.scriptText && (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
+                            <FileText className="w-3 h-3 text-sky-400" /> Skrip Lisan Narasi Presentasi
+                          </label>
+                          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-300 max-h-24 overflow-y-auto leading-relaxed">
+                            {vid.scriptText}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -456,7 +512,7 @@ export const StageMate: React.FC = () => {
                     className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-sky-300 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Unduh Video MP4
+                    Unduh Berkas Presentasi MP4
                   </a>
                 )}
               </div>

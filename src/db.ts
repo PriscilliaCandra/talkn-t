@@ -40,6 +40,7 @@ export interface PresenterVideoRecord {
   voiceSamplePath?: string | null;
   scriptText?: string | null;
   videoUrl?: string | null;
+  audioUrl?: string | null;
   status: 'uploading' | 'extracting' | 'scripting' | 'voice_cloning' | 'lip_syncing' | 'completed' | 'failed' | string;
   statusMessage?: string | null;
   progress: number;
@@ -291,7 +292,7 @@ export class DatabaseService {
 
   public async updatePresenterVideo(
     id: string,
-    update: { status?: string; statusMessage?: string; progress?: number; videoUrl?: string; scriptText?: string }
+    update: { status?: string; statusMessage?: string; progress?: number; videoUrl?: string; audioUrl?: string; scriptText?: string }
   ): Promise<PresenterVideoRecord | null> {
     try {
       const updated = await this.prisma.virtualPresenterVideo.update({
@@ -307,6 +308,7 @@ export class DatabaseService {
         if (update.statusMessage) item.statusMessage = update.statusMessage;
         if (update.progress !== undefined) item.progress = update.progress;
         if (update.videoUrl) item.videoUrl = update.videoUrl;
+        if (update.audioUrl) item.audioUrl = update.audioUrl;
         if (update.scriptText) item.scriptText = update.scriptText;
         this.saveLocalDatabase();
         return item;
