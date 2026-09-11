@@ -49,6 +49,12 @@ async function main() {
   });
   const uploadMedia = multer({ storage: mediaStorage });
 
+  // Static directory serving for uploads, audio, media, and videos
+  app.use('/uploads', express.static(env.PRESENTATION_STORAGE_ABSOLUTE_PATH));
+  app.use('/audio', express.static(env.AUDIO_STORAGE_ABSOLUTE_PATH));
+  app.use('/media', express.static(env.MEDIA_STORAGE_ABSOLUTE_PATH));
+  app.use('/videos', express.static(path.resolve('./video_outputs')));
+
   // --- API AUTHENTICATION ROUTES ---
   app.post('/api/auth/register', async (req, res) => {
     try {
@@ -221,11 +227,6 @@ async function main() {
       return res.status(500).json({ error: err?.message || 'Gagal menghapus file media.' });
     }
   });
-
-  // Static directory serving
-  app.use('/audio', express.static(env.AUDIO_STORAGE_ABSOLUTE_PATH));
-  app.use('/media', express.static(env.MEDIA_STORAGE_ABSOLUTE_PATH));
-  app.use('/videos', express.static(path.resolve('./video_outputs')));
 
   try {
     waConnector.init();

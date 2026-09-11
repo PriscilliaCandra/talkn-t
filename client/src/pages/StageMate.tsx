@@ -137,6 +137,12 @@ export const StageMate: React.FC = () => {
     return 'pending';
   };
 
+  const getMediaUrl = (filePath?: string | null) => {
+    if (!filePath) return '';
+    const cleanFileName = filePath.replace(/\\/g, '/').split('/').pop();
+    return `http://localhost:5000/uploads/${cleanFileName}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner - Strict Blue Theme */}
@@ -451,18 +457,18 @@ export const StageMate: React.FC = () => {
                           <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex flex-col justify-between h-full">
                             <span className="text-[9px] font-bold text-sky-400 uppercase">Slide Presentation</span>
                             <p className="text-xs font-bold text-white line-clamp-2">{vid.title}</p>
-                            <span className="text-[9px] text-slate-400">File: {vid.pptFileName}</span>
+                            <span className="text-[9px] text-slate-400 truncate">File: {vid.pptFileName}</span>
                           </div>
 
                           {/* Presenter Face Avatar Photo */}
                           <div className="w-24 h-full bg-slate-950 border border-blue-500/30 rounded-lg overflow-hidden relative flex flex-col items-center justify-center shrink-0">
                             {vid.facePhotoPath ? (
                               <img
-                                src={`http://localhost:5000/media/${vid.facePhotoPath.replace(/\\/g, '/').split('/').pop()}`}
+                                src={getMediaUrl(vid.facePhotoPath)}
                                 alt="AI Presenter Face Avatar"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  // Fallback jika path foto lokal
+                                  // Fallback jika tidak dapat dimuat
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
@@ -482,6 +488,7 @@ export const StageMate: React.FC = () => {
                           </label>
                           <audio
                             controls
+                            key={vid.audioUrl}
                             src={`http://localhost:5000${vid.audioUrl}`}
                             className="w-full h-8 rounded-lg outline-none"
                           />
