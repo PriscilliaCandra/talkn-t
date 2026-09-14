@@ -43,7 +43,6 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
   const faceImgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    // Preload face image
     if (video.facePhotoPath) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -63,7 +62,6 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
     };
   }, [video]);
 
-  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -114,23 +112,25 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
 
     // Slide Title & Content Text
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillText('SLIDE PRESENTASI', slideX + 20, slideY + 36);
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('SLIDE PRESENTASI', slideX + 20, slideY + 32);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(video.title.substring(0, 32), slideX + 20, slideY + 75);
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(video.title.substring(0, 30), slideX + 20, slideY + 68);
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(`File: ${video.pptFileName}`, slideX + 20, slideY + 105);
+    ctx.font = '11px sans-serif';
+    ctx.fillText(`File: ${video.pptFileName}`, slideX + 20, slideY + 95);
 
-    // Slide Bullet Highlights
-    ctx.fillStyle = '#64748b';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('• Ringkasan Poin Utama Dokumen Presentasi', slideX + 20, slideY + 150);
-    ctx.fillText('• Analisis Solusi Teknologi AI StageMate', slideX + 20, slideY + 175);
-    ctx.fillText('• Kesimpulan & Rekomendasi Eksekusi', slideX + 20, slideY + 200);
+    // Dynamic Script Narration Content Text inside Slide Box
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '11px sans-serif';
+    const scriptSnippet = video.scriptText || 'Pembahasan dokumen presentasi mencakup evaluasi, data performa, strategi eksekusi, serta rekomendasi keberlanjutan.';
+    const lines = scriptSnippet.match(/.{1,42}(\s|$)/g) || [scriptSnippet];
+    lines.slice(0, 5).forEach((line, idx) => {
+      ctx.fillText(`• ${line.trim()}`, slideX + 20, slideY + 135 + idx * 22);
+    });
 
     // Presenter Face Avatar (Right Area)
     const avatarW = width * 0.34;
@@ -145,41 +145,43 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
 
     const img = faceImgRef.current;
     if (img && img.complete) {
-      // Subtle Head Movement animation
-      const headOffset = speaking ? Math.sin(timestamp / 200) * 4 : 0;
-      ctx.drawImage(img, avatarX, avatarY + headOffset, avatarW, avatarH);
+      // Realistic Presenter Natural Body & Head Motion
+      const headOffset = speaking ? Math.sin(timestamp / 180) * 3 : 0;
+      const bodyBreathing = Math.cos(timestamp / 400) * 1.5;
 
-      // Lip-Sync Mouth Motion Animation Overlay
+      // Draw User Uploaded Face Photo (Proper Head-to-Chest Framing)
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      let drawW = avatarW;
+      let drawH = avatarW / imgAspect;
+      if (drawH < avatarH) {
+        drawH = avatarH;
+        drawW = avatarH * imgAspect;
+      }
+      const drawX = avatarX + (avatarW - drawW) / 2;
+      const drawY = avatarY + (avatarH - drawH) / 2 + headOffset + bodyBreathing;
+
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      // Natural Realistic Lip-Sync Mouth Animation (Positioned accurately over lower face)
       if (speaking) {
-        const mouthOpen = Math.abs(Math.sin(timestamp / 80)) * 14;
-        ctx.fillStyle = '#1e1010';
+        const mouthY = drawY + drawH * 0.58;
+        const mouthX = avatarX + avatarW / 2;
+        const mouthOpen = Math.abs(Math.sin(timestamp / 90)) * 7;
+        const mouthWidth = 9 + Math.cos(timestamp / 110) * 2;
+
+        // Darker Inner Mouth Shadow
+        ctx.fillStyle = 'rgba(20, 10, 10, 0.85)';
         ctx.beginPath();
-        ctx.ellipse(
-          avatarX + avatarW / 2,
-          avatarY + avatarH * 0.68 + headOffset,
-          12,
-          4 + mouthOpen / 2,
-          0,
-          0,
-          Math.PI * 2
-        );
+        ctx.ellipse(mouthX, mouthY, mouthWidth, 2 + mouthOpen / 2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#ef4444';
+        // Natural Lip Color Accents
+        ctx.fillStyle = 'rgba(180, 80, 80, 0.5)';
         ctx.beginPath();
-        ctx.ellipse(
-          avatarX + avatarW / 2,
-          avatarY + avatarH * 0.68 + 2 + headOffset,
-          6,
-          2 + mouthOpen / 4,
-          0,
-          0,
-          Math.PI * 2
-        );
+        ctx.ellipse(mouthX, mouthY + 1, mouthWidth * 0.7, 1 + mouthOpen / 4, 0, 0, Math.PI * 2);
         ctx.fill();
       }
     } else {
-      // Fallback Vector Presenter Avatar
       ctx.fillStyle = '#030712';
       ctx.fillRect(avatarX, avatarY, avatarW, avatarH);
       ctx.fillStyle = '#38bdf8';
@@ -190,7 +192,7 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
     }
     ctx.restore();
 
-    // Border around Avatar
+    // Border around Avatar Box
     ctx.strokeStyle = speaking ? '#38bdf8' : '#334155';
     ctx.lineWidth = speaking ? 4 : 2;
     ctx.beginPath();
@@ -206,7 +208,7 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 10px sans-serif';
-      ctx.fillText('● SPEAKING', avatarX + 24, avatarY + 28);
+      ctx.fillText('● PRESENTING', avatarX + 22, avatarY + 28);
     }
   };
 
@@ -265,7 +267,7 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
   const fallbackWebSpeech = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const script = video.scriptText || `Presentasi ${video.title}. Pembahasan mencakup poin-poin utama slide.`;
+      const script = video.scriptText || `Presentasi ${video.title}. Pembahasan mencakup poin-poin utama dokumen.`;
       const utterance = new SpeechSynthesisUtterance(script);
       utterance.lang = video.language === 'en-US' ? 'en-US' : 'id-ID';
       utterance.rate = 1.0;
@@ -326,21 +328,19 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
         pausePlayback();
       }, (duration || 10) * 1000);
     } catch (e) {
-      // Direct file download fallback
       window.open(`http://localhost:5000${video.videoUrl}`, '_blank');
     }
   };
 
   return (
     <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-3 my-2 space-y-3 shadow-lg">
-      {/* Main Interactive Stage Container with Fullscreen Ref */}
+      {/* Main Interactive Stage Container */}
       <div
         ref={containerRef}
         className={`relative aspect-video rounded-lg overflow-hidden bg-slate-950 border border-slate-800 flex flex-col justify-between p-3 shadow-inner group ${
           isFullscreen ? 'w-screen h-screen flex items-center justify-center bg-black p-6' : ''
         }`}
       >
-        {/* Rendered HTML5 Canvas Presentation Screen */}
         <canvas
           ref={canvasRef}
           width={800}
