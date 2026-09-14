@@ -28,25 +28,33 @@ export class VideoGeneratorService {
     }
   }
 
+  /**
+   * Pipeline Pengolahan Media StageMate Engine:
+   * 1. Parsing PPT / PDF Document (20%)
+   * 2. DeepSeek AI Speech Script Generation (40%)
+   * 3. Voice Cloning Audio Synthesis (60%)
+   * 4. Photo Face Animation & Lip-Sync (80%)
+   * 5. Final Video Composite MP4 (100%)
+   */
   public async generateVirtualPresenterVideo(videoRecord: PresenterVideoRecord): Promise<void> {
     const videoId = videoRecord.id;
     logger.info(`[VideoGenerator] 🎬 Starting StageMate AI Virtual Presenter Pipeline (ID: ${videoId})`);
 
     try {
       // ----------------------------------------------------
-      // STEP 1: Ekstraksi Teks Asli dari Dokumen Presentasi User (20%)
+      // STEP 1: Parsing PPT / PDF & Ekstraksi Narasi (20%)
       // ----------------------------------------------------
-      await this.updateProgress(videoId, 'extracting', 'Mengekstrak teks isi dokumen presentasi Anda...', 20);
+      await this.updateProgress(videoId, 'extracting', '1/4 Parsing PPT & Ekstraksi isi dokumen...', 20);
       const slideContent = await this.extractSlideContent(videoRecord.pptFileName, videoRecord.scriptText);
-      logger.info(`[VideoGenerator] Step 1 Complete: Extracted real document text (${slideContent.length} chars)`);
+      logger.info(`[VideoGenerator] Step 1 Complete: Extracted document text (${slideContent.length} chars)`);
 
       // ----------------------------------------------------
-      // STEP 2: Susun Naskah Narasi Presentasi dengan DeepSeek AI (40%)
+      // STEP 2: DeepSeek AI Presentation Speech Scripting (40%)
       // ----------------------------------------------------
-      await this.updateProgress(videoId, 'scripting', 'Merancang skrip narasi presentasi lisan alami via DeepSeek AI...', 40);
+      await this.updateProgress(videoId, 'scripting', '2/4 Merancang skrip narasi lisan via DeepSeek AI...', 40);
       let narrationScript = slideContent;
       try {
-        const prompt = `Kamu adalah seorang Presenter Lisan Profesional. Berikut adalah isi teks dokumen/slide presentasi pengguna:\n\n"${slideContent}"\n\nUbah dan susun isi teks dokumen di atas menjadi naskah lisan narasi presentasi yang alami, jelas, dan memikat untuk dibacakan presenter virtual secara langsung:`;
+        const prompt = `Kamu adalah seorang Presenter Lisan Profesional. Berikut adalah isi teks dokumen presentasi pengguna:\n\n"${slideContent}"\n\nUbah dan susun isi teks dokumen di atas menjadi naskah lisan narasi presentasi yang alami, jelas, dan memikat untuk dibacakan presenter virtual:`;
         const aiScriptResult = await aiAgentService.generateReply('stagemate_gen', prompt);
         if (aiScriptResult?.replyText) {
           narrationScript = aiScriptResult.replyText;
@@ -54,12 +62,12 @@ export class VideoGeneratorService {
       } catch (scriptErr: any) {
         logger.warn(`[VideoGenerator] DeepSeek AI script generation fallback: ${scriptErr?.message || scriptErr}`);
       }
-      logger.info(`[VideoGenerator] Step 2 Complete: Narration script ready.`);
+      logger.info(`[VideoGenerator] Step 2 Complete: DeepSeek speech script ready.`);
 
       // ----------------------------------------------------
-      // STEP 3: Voice Cloning / Sintesis Suara Sesuai Naskah (65%)
+      // STEP 3: Voice Cloning & Audio Speech Synthesis (60%)
       // ----------------------------------------------------
-      await this.updateProgress(videoId, 'voice_cloning', 'Memproses Sintesis Suara Narasi Dokumen AI...', 65);
+      await this.updateProgress(videoId, 'voice_cloning', '3/4 Cloning Voice & Sintesis Suara Pengguna...', 60);
       const audioFileName = `presenter_audio_${videoId}.mp3`;
       let audioPath: string;
 
@@ -73,16 +81,27 @@ export class VideoGeneratorService {
         audioPath = await speechService.generateSpeech(narrationScript.substring(0, 1000), audioFileName, { voice });
       }
       logger.info(`[VideoGenerator] Step 3 Complete: Speech Audio generated at ${audioPath}`);
-
       const audioUrl = `/audio/${audioFileName}`;
 
       // ----------------------------------------------------
-      // STEP 4: Animasi Composite Video Presenter (85%)
+      // STEP 4: Animasi Wajah & Lip-Sync (Photo Animation) (80%)
       // ----------------------------------------------------
-      await this.updateProgress(videoId, 'lip_syncing', 'Menganimasikan foto wajah & membuat lip-sync video presentasi...', 85);
+      await this.updateProgress(videoId, 'animating_face', '4/4 Animating Face & Lip-Sync Foto Presenter...', 80);
       const outputVideoName = `presentation_${videoId}.mp4`;
       const outputVideoPath = path.join(this.outputDir, outputVideoName);
 
+      // Cek apakah D-ID API Key tersedia untuk Photo Animation
+      const didApiKey = process.env.DID_API_KEY;
+      let generatedDidVideoUrl: string | null = null;
+
+      if (didApiKey && videoRecord.facePhotoPath && fs.existsSync(videoRecord.facePhotoPath)) {
+        logger.info(`[VideoGenerator] Requesting D-ID Talking Head Photo Animation API...`);
+        generatedDidVideoUrl = await this.generateDidPhotoAnimation(didApiKey, videoRecord.facePhotoPath, audioPath);
+      }
+
+      // ----------------------------------------------------
+      // STEP 5: Final Video Compositing (Overlay Slide & Avatar) (100%)
+      // ----------------------------------------------------
       await this.compositePresenterVideo(
         outputVideoPath,
         videoRecord.title,
@@ -92,11 +111,8 @@ export class VideoGeneratorService {
         audioPath
       );
 
-      const videoUrl = `/videos/${outputVideoName}`;
+      const videoUrl = generatedDidVideoUrl || `/videos/${outputVideoName}`;
 
-      // ----------------------------------------------------
-      // STEP 5: Generasi Selesai (100%)
-      // ----------------------------------------------------
       await this.updateProgress(videoId, 'completed', 'Video Presenter Virtual AI Siap Diputar!', 100, videoUrl, narrationScript, audioUrl);
       logger.info(`====================================================`);
       logger.info(`✅ Video Presenter Virtual AI Berhasil Selesai! Video: ${videoUrl}, Audio: ${audioUrl}`);
@@ -133,9 +149,6 @@ export class VideoGeneratorService {
     return updated;
   }
 
-  /**
-   * Mengekstrak isi teks asli dari file dokumen PPT/PPTX/PDF pengguna.
-   */
   private async extractSlideContent(pptFileName: string, optionalScript?: string | null): Promise<string> {
     if (optionalScript && optionalScript.trim().length > 10) {
       return optionalScript.trim();
@@ -214,6 +227,37 @@ export class VideoGeneratorService {
       logger.warn(`[ElevenLabs] Voice cloning API call fallback: ${err?.message || err}`);
       return await speechService.generateSpeech(text.substring(0, 1000), outputFileName, { voice: 'id-ID-ArdiNeural' });
     }
+  }
+
+  private async generateDidPhotoAnimation(apiKey: string, imagePath: string, _audioPath: string): Promise<string | null> {
+    try {
+      const response = await axios.post(
+        'https://api.d-id.com/talks',
+        {
+          source_url: `http://localhost:5000/uploads/${path.basename(imagePath)}`,
+          script: {
+            type: 'text',
+            subtitles: 'false',
+            provider: { type: 'microsoft', voice_id: 'id-ID-ArdiNeural' },
+            ssml: 'false',
+          },
+          config: { fluent: 'true', pad_audio: '0.0' },
+        },
+        {
+          headers: {
+            Authorization: `Basic ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data?.result_url) {
+        return response.data.result_url;
+      }
+    } catch (e: any) {
+      logger.warn(`[D-ID API] Photo animation fallback to canvas engine: ${e?.message || e}`);
+    }
+    return null;
   }
 
   private async compositePresenterVideo(
