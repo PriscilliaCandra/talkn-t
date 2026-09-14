@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
-import { Video, Upload, FileText, UserCheck, Mic, Play, Pause, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Volume2, VolumeX, RotateCcw } from 'lucide-react';
+import { Video, Upload, FileText, UserCheck, Mic, Play, Pause, Sparkles, CheckCircle2, Loader2, Download, Layout, Globe, Image as ImageIcon, Volume2, VolumeX, RotateCcw, Maximize, Minimize } from 'lucide-react';
 
 export interface PresenterVideo {
   id: string;
@@ -28,18 +28,197 @@ interface VideoStagePlayerProps {
 const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(15); // default fallback 15s
+  const [duration, setDuration] = useState(15);
   const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const animFrameRef = useRef<number | null>(null);
   const timerRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
+  const faceImgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    // Preload face image
+    if (video.facePhotoPath) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = getMediaUrl(video.facePhotoPath);
+      img.onload = () => {
+        faceImgRef.current = img;
+        drawCanvasFrame(0, false);
+      };
+    } else {
+      drawCanvasFrame(0, false);
+    }
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     };
+  }, [video]);
+
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => console.error(err));
+    } else {
+      document.exitFullscreen().catch(err => console.error(err));
+    }
+  };
+
+  const drawCanvasFrame = (timestamp: number, speaking: boolean) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Background Gradient (Virtual Stage Dark Studio)
+    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    bgGrad.addColorStop(0, '#020617');
+    bgGrad.addColorStop(0.5, '#0f172a');
+    bgGrad.addColorStop(1, '#1e1b4b');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Slide Presentation Box (Left Area)
+    const slideW = width * 0.58;
+    const slideH = height * 0.78;
+    const slideX = 24;
+    const slideY = (height - slideH) / 2;
+
+    ctx.fillStyle = '#090d16';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(slideX, slideY, slideW, slideH, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    // Slide Title & Content Text
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('SLIDE PRESENTASI', slideX + 20, slideY + 36);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(video.title.substring(0, 32), slideX + 20, slideY + 75);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`File: ${video.pptFileName}`, slideX + 20, slideY + 105);
+
+    // Slide Bullet Highlights
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('• Ringkasan Poin Utama Dokumen Presentasi', slideX + 20, slideY + 150);
+    ctx.fillText('• Analisis Solusi Teknologi AI StageMate', slideX + 20, slideY + 175);
+    ctx.fillText('• Kesimpulan & Rekomendasi Eksekusi', slideX + 20, slideY + 200);
+
+    // Presenter Face Avatar (Right Area)
+    const avatarW = width * 0.34;
+    const avatarH = slideH;
+    const avatarX = slideX + slideW + 20;
+    const avatarY = slideY;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(avatarX, avatarY, avatarW, avatarH, 16);
+    ctx.clip();
+
+    const img = faceImgRef.current;
+    if (img && img.complete) {
+      // Subtle Head Movement animation
+      const headOffset = speaking ? Math.sin(timestamp / 200) * 4 : 0;
+      ctx.drawImage(img, avatarX, avatarY + headOffset, avatarW, avatarH);
+
+      // Lip-Sync Mouth Motion Animation Overlay
+      if (speaking) {
+        const mouthOpen = Math.abs(Math.sin(timestamp / 80)) * 14;
+        ctx.fillStyle = '#1e1010';
+        ctx.beginPath();
+        ctx.ellipse(
+          avatarX + avatarW / 2,
+          avatarY + avatarH * 0.68 + headOffset,
+          12,
+          4 + mouthOpen / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.ellipse(
+          avatarX + avatarW / 2,
+          avatarY + avatarH * 0.68 + 2 + headOffset,
+          6,
+          2 + mouthOpen / 4,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+    } else {
+      // Fallback Vector Presenter Avatar
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(avatarX, avatarY, avatarW, avatarH);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('AI Presenter', avatarX + avatarW / 2, avatarY + avatarH / 2);
+      ctx.textAlign = 'start';
+    }
+    ctx.restore();
+
+    // Border around Avatar
+    ctx.strokeStyle = speaking ? '#38bdf8' : '#334155';
+    ctx.lineWidth = speaking ? 4 : 2;
+    ctx.beginPath();
+    ctx.roundRect(avatarX, avatarY, avatarW, avatarH, 16);
+    ctx.stroke();
+
+    // Active Speaking Badge Overlay
+    if (speaking) {
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.roundRect(avatarX + 12, avatarY + 12, 100, 24, 6);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('● SPEAKING', avatarX + 24, avatarY + 28);
+    }
+  };
+
+  const startAnimationLoop = () => {
+    let startTime: number | null = null;
+    const render = (ts: number) => {
+      if (!startTime) startTime = ts;
+      drawCanvasFrame(ts - startTime, true);
+      animFrameRef.current = requestAnimationFrame(render);
+    };
+    animFrameRef.current = requestAnimationFrame(render);
+  };
 
   const handleTogglePlay = () => {
     if (isPlaying) {
@@ -51,29 +230,26 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
 
   const startPlayback = () => {
     setIsPlaying(true);
+    startAnimationLoop();
 
     const audioEl = audioRef.current;
-    let playedViaAudioTag = false;
-
     if (audioEl && video.audioUrl) {
       audioEl.muted = isMuted;
       audioEl
         .play()
         .then(() => {
-          playedViaAudioTag = true;
           if (audioEl.duration && !isNaN(audioEl.duration)) {
             setDuration(Math.ceil(audioEl.duration));
           }
         })
         .catch((err) => {
-          console.warn('Audio tag play fallback to Web Speech API:', err);
+          console.warn('Audio tag play fallback:', err);
           fallbackWebSpeech();
         });
     } else {
       fallbackWebSpeech();
     }
 
-    // Timer simulation & talking state
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setCurrentTime((prev) => {
@@ -100,9 +276,11 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
 
   const pausePlayback = () => {
     setIsPlaying(false);
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
     if (audioRef.current) audioRef.current.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    drawCanvasFrame(0, false);
   };
 
   const handleReset = () => {
@@ -117,81 +295,104 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleDownloadMp4 = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      const stream = canvas.captureStream(30);
+      recordedChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `presentation_${video.id}.mp4`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      mediaRecorder.start();
+      startPlayback();
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+        pausePlayback();
+      }, (duration || 10) * 1000);
+    } catch (e) {
+      // Direct file download fallback
+      window.open(`http://localhost:5000${video.videoUrl}`, '_blank');
+    }
+  };
+
   return (
     <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-3 my-2 space-y-3 shadow-lg">
-      {/* Main Interactive Stage Display */}
-      <div className="relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col justify-between p-3 border border-slate-800 shadow-inner group">
-        {/* Top Header Badge */}
-        <div className="flex items-center justify-between z-10">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/40 border border-blue-500/40 text-[9px] font-bold text-sky-300 uppercase">
-            <Video className="w-3 h-3 text-sky-400" />
-            <span>Panggung Presenter AI ({video.layoutPreset || 'Side-by-Side'})</span>
+      {/* Main Interactive Stage Container with Fullscreen Ref */}
+      <div
+        ref={containerRef}
+        className={`relative aspect-video rounded-lg overflow-hidden bg-slate-950 border border-slate-800 flex flex-col justify-between p-3 shadow-inner group ${
+          isFullscreen ? 'w-screen h-screen flex items-center justify-center bg-black p-6' : ''
+        }`}
+      >
+        {/* Rendered HTML5 Canvas Presentation Screen */}
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={450}
+          className="w-full h-full object-contain rounded-lg"
+        />
+
+        {/* Top Floating Control Bar */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-auto">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700/80 backdrop-blur-md text-[10px] font-bold text-sky-300 uppercase shadow-md">
+            <Video className="w-3.5 h-3.5 text-sky-400" />
+            <span>Panggung Presenter Virtual ({video.layoutPreset || 'Side-by-Side'})</span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 backdrop-blur-md rounded-lg p-1 shadow-md">
             <button
               onClick={() => setIsMuted(!isMuted)}
-              className="p-1 bg-slate-900/80 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
               title={isMuted ? 'Buka Suara' : 'Mute'}
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-sky-400" />}
+              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-sky-400" />}
             </button>
+
             <button
               onClick={handleReset}
-              className="p-1 bg-slate-900/80 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
               title="Reset Video"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={toggleFullscreen}
+              className="p-1.5 hover:bg-slate-800 rounded text-sky-400 hover:text-white transition-colors"
+              title={isFullscreen ? 'Keluar Fullscreen' : 'Layar Penuh (Full Screen)'}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* Center Presenter & Slide Composite */}
-        <div className="flex items-center justify-between w-full h-[65%] gap-2 z-10 my-auto">
-          {/* Slide Box */}
-          <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex flex-col justify-between h-full shadow-md">
-            <span className="text-[9px] font-bold text-sky-400 uppercase">Slide Presentasi</span>
-            <p className="text-xs font-extrabold text-white line-clamp-2">{video.title}</p>
-            <span className="text-[9px] text-slate-400 truncate">File: {video.pptFileName}</span>
-          </div>
-
-          {/* Presenter Face Photo Avatar (Animates on Playback) */}
-          <div className={`w-28 h-full bg-slate-950 border rounded-lg overflow-hidden relative flex flex-col items-center justify-center shrink-0 transition-all ${
-            isPlaying ? 'border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.4)] scale-105' : 'border-slate-800'
-          }`}>
-            {video.facePhotoPath ? (
-              <img
-                src={getMediaUrl(video.facePhotoPath)}
-                alt="AI Presenter Face Avatar"
-                className={`w-full h-full object-cover transition-transform duration-300 ${isPlaying ? 'animate-pulse scale-110' : ''}`}
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <UserCheck className="w-8 h-8 text-sky-400 mb-1" />
-            )}
-
-            {isPlaying && (
-              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-blue-600/90 rounded text-[8px] font-bold text-white uppercase flex items-center gap-1 animate-bounce">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-300 animate-ping" />
-                <span>Speaking</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Big Center Overlay Play/Pause Button */}
+        {/* Big Overlay Center Play/Pause Button */}
         <button
           onClick={handleTogglePlay}
-          className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-xl backdrop-blur-sm transition-all active:scale-95 z-20"
+          className="absolute inset-0 m-auto w-14 h-14 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 z-20"
           title={isPlaying ? 'Jeda Presentasi' : 'Putar Video Presenter AI'}
         >
-          {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+          {isPlaying ? <Pause className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current ml-1" />}
         </button>
 
         {/* Bottom Timeline Control Bar */}
-        <div className="w-full space-y-1 z-10 pt-1">
+        <div className="absolute bottom-4 left-4 right-4 space-y-1 z-20 bg-slate-900/90 border border-slate-800 backdrop-blur-md p-2 rounded-lg pointer-events-auto">
           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden cursor-pointer">
             <div
               className="h-full bg-sky-400 transition-all duration-300"
@@ -204,7 +405,7 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
           </div>
         </div>
 
-        {/* Hidden Audio Tag for Audio URL Playback */}
+        {/* Hidden Audio Element */}
         {video.audioUrl && (
           <audio
             ref={audioRef}
@@ -230,6 +431,15 @@ const VideoStagePlayer: React.FC<VideoStagePlayerProps> = ({ video, getMediaUrl 
           </div>
         </div>
       )}
+
+      {/* Download Video Button */}
+      <button
+        onClick={handleDownloadMp4}
+        className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-sky-300 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+      >
+        <Download className="w-3.5 h-3.5" />
+        Unduh Berkas Presentasi MP4
+      </button>
     </div>
   );
 };
@@ -656,24 +866,11 @@ export const StageMate: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Virtual Presenter Stage Video Player */}
+                  {/* Virtual Presenter Stage Canvas Player */}
                   {vid.status === 'completed' && (
                     <VideoStagePlayer video={vid} getMediaUrl={getMediaUrl} />
                   )}
                 </div>
-
-                {vid.status === 'completed' && vid.videoUrl && (
-                  <a
-                    href={`http://localhost:5000${vid.videoUrl}`}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-sky-300 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Unduh Berkas Presentasi MP4
-                  </a>
-                )}
               </div>
             ))
           ) : (
